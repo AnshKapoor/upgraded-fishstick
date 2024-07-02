@@ -537,9 +537,13 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         n = 0
         for importer, module_name, is_pkg in plugins:
             if is_pkg:
-                module_ = importer.find_module(module_name).load_module(module_name)
-                loaded_plugin_names.append(package + "." + module_name) # Store loaded plugin name
-                n += self.load_plugins(pkgutil.iter_modules(module_.__path__), package + "." + module_name)
+                path = p.__path__[0]
+                path = os.path.join(path, module_name)
+                path = [path]
+                loaded_plugin_names.append(package + "." + module_name)  # Store loaded plugin name
+
+                n += self.load_plugins(pkgutil.iter_modules(path), package + "." + module_name)
+
             else:
                 n += 1
                 module_ = importlib.import_module(package + "." + module_name, package=package)
@@ -551,7 +555,7 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
                 for Task in tasks:
                     self.background_tasks.append(Task(self))
                     
-          # Print loaded plugin names and their order
+        # Print loaded plugin names and their order
         for i, plugin_name in enumerate(loaded_plugin_names, 1):
             print(f"Loaded plugin {i}: {plugin_name}")
             
@@ -592,8 +596,12 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
             return QItemPluginItem(module_.SCREEN_NAME, widget=widget)
 
         item = QItemPluginFolder(module_name)
-        module_ = importer.find_module(module_name).load_module(module_name)
-        for importer, modname, is_pkg in pkgutil.iter_modules(module_.__path__):
+
+        path = os.path.join(os.path.dirname(__file__), package)
+        path = os.path.join(path, module_name)
+        path = [path]
+
+        for importer, modname, is_pkg in pkgutil.iter_modules(path):
             item.appendRow(self.module_to_item(importer, modname, is_pkg, package=package + "." + module_name))
         return item
 
