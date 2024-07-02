@@ -1,5 +1,5 @@
-from PyQt5.QtCore import pyqtSlot, QTimer
-from PyQt5 import QtWidgets
+from PyQt6.QtCore import pyqtSlot, QTimer
+from PyQt6 import QtWidgets
 import sys
 import time
 
@@ -53,4 +53,4 @@ if __name__ == '__main__':
     print("testing slot:")
     slot(False)
     slota()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())

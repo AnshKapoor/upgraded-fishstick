@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-
+# TODO whether its specific to PyQt5
 # Resource object code
 #
 # Created by: The Resource Compiler for PyQt5 (Qt v5.8.0)
 #
 # WARNING! All changes made in this file will be lost!
 
-from PyQt5 import QtCore
+from PyQt6 import QtCore
 
 qt_resource_data = b"\
 \x00\x00\x03\x7e\

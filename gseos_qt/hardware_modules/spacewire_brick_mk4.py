@@ -4,7 +4,7 @@ import sys
 import threading
 import time
 import csv
-from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt6.QtCore import QObject, pyqtSignal
 
 module_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(module_path)

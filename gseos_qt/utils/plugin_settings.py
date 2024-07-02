@@ -1,6 +1,6 @@
 import json
 from datetime import datetime
-from PyQt5 import QtCore
+from PyQt6 import QtCore
 from threading import Lock
 from contextlib import suppress
 

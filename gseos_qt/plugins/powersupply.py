@@ -1,5 +1,5 @@
-from PyQt5 import QtWidgets, uic, QtCore
-from PyQt5.QtCore import pyqtSignal, Qt, pyqtSlot
+from PyQt6 import QtWidgets, uic, QtCore
+from PyQt6.QtCore import pyqtSignal, Qt, pyqtSlot
 from contextlib import suppress
 import threading
 import qtawesome as qta

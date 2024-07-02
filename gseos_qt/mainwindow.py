@@ -1,7 +1,7 @@
 import os
-from PyQt5 import QtCore, QtWidgets, QtGui, uic
-from PyQt5.QtGui import QStandardItem, QStandardItemModel, QIcon
-from PyQt5.QtCore import pyqtSignal
+from PyQt6 import QtCore, QtWidgets, QtGui, uic
+from PyQt6.QtGui import QStandardItem, QStandardItemModel, QIcon
+from PyQt6.QtCore import pyqtSignal
 from contextlib import suppress
 from typing import *
 

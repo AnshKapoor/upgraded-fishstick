@@ -1,10 +1,12 @@
-from PyQt5 import QtCore, QtWidgets, uic
+from PyQt6 import QtCore, QtWidgets, uic
 from .consolewidget import ConsoleWidget
+
 
 def stackedWidgetSet(stacked, widget):
     while stacked.count() > 0:
         stacked.removeWidget(stacked.currentWidget())
     stacked.addWidget(widget)
+
 
 class BottomWidget(QtWidgets.QWidget):
     def __init__(self, *args):

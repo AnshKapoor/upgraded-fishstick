@@ -191,10 +191,10 @@ def check_installation() -> bool:
         return False
 
     try:
-        import PyQt5
+        import PyQt6
     except (ModuleNotFoundError, ImportError):
-        install("pyqt5")
-        import PyQt5
+        install("pyqt6")
+        import PyQt6
     try:
         import serial
     except (ModuleNotFoundError, ImportError):
@@ -255,14 +255,13 @@ def run(argv: List[str]):
     global app, app_icon
     from gseos_qt import COMPANY, PRODUCT, VERSION_STR
     from pygit2 import Repository
-    from PyQt5 import QtWidgets, QtCore, QtGui
+    from PyQt6 import QtWidgets, QtCore, QtGui
     from gseos_qt.mainwindow import MyMainWindow
     from gseos_qt.utils.widget import CusIcon, delay_in_main_thread
     from contextlib import suppress
-    from PyQt5.QtCore import QT_VERSION_STR
-    from PyQt5.Qt import PYQT_VERSION_STR
+    from PyQt6.QtCore import QT_VERSION_STR, PYQT_VERSION_STR
     import gseos_qt.qrc
-    from sip import SIP_VERSION_STR
+    # from sip import SIP_VERSION_STR
 
     if (os.name == 'nt' or os.name == 'WINDOWS_NT'):
         with suppress(Exception):
@@ -297,14 +296,9 @@ def run(argv: List[str]):
 
     app.processEvents()
 
-    # noinspection PyCallByClass
-    QtWidgets.QApplication.setStyle(QtWidgets.QStyleFactory.create('Fusion'))
-    app.setAttribute(QtCore.Qt.AA_DisableHighDpiScaling, False)
-    app.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
-
     delay_in_main_thread(50, lambda: MyMainWindow(argv, splash=splash, main_file_path=main_file_path).show())
 
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 
 
 def change_dir(file: Optional[str] = None):

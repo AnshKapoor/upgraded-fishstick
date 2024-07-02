@@ -1,5 +1,5 @@
 from contextlib import suppress
-from PyQt5 import QtWidgets, QtCore
+from PyQt6 import QtWidgets, QtCore
 
 try:
     from ..utils.widget import SplitterWithSettings

@@ -1,4 +1,4 @@
-from PyQt5 import QtWidgets, QtCore, uic
+from PyQt6 import QtWidgets, QtCore, uic
 from copy import copy
 from .plugin_settings import PluginSettings
 from contextlib import suppress

@@ -2,8 +2,8 @@ import cmd
 import threading
 import io
 
-from PyQt5 import QtWidgets, uic, QtGui
-from PyQt5.QtCore import pyqtSlot
+from PyQt6 import QtWidgets, uic, QtGui
+from PyQt6.QtCore import pyqtSlot
 
 
 def buffer_pop(s: io.StringIO) -> str:

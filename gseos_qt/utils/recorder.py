@@ -7,10 +7,10 @@ import gzip
 import os
 from typing import *
 from datetime import datetime
-from PyQt5.uic import loadUi
-from PyQt5.QtCore import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtGui import *
+from PyQt6.uic import loadUi
+from PyQt6.QtCore import *
+from PyQt6.QtWidgets import *
+from PyQt6.QtGui import *
 from functools import wraps
 from contextlib import suppress
 from gseos_qt.utils.misc import WrappedMessageHandler, call_async

@@ -1,5 +1,5 @@
-from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtCore import pyqtSlot, pyqtSignal
+from PyQt6 import QtCore, QtWidgets
+from PyQt6.QtCore import pyqtSlot, pyqtSignal
 from contextlib import suppress
 import threading
 import re

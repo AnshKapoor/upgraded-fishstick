@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtWidgets, QtGui, uic
+from PyQt6 import QtCore, QtWidgets, QtGui, uic
 from pathlib import Path
 from contextlib import suppress
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -102,7 +102,7 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
         file_dialog.setWindowTitle("Select File")
         file_dialog.setFileMode(QtWidgets.QFileDialog.ExistingFile)
 
-        if file_dialog.exec_():
+        if file_dialog.exec():
             file_paths = file_dialog.selectedFiles()
             if file_paths:
                 selected_file = file_paths[0]

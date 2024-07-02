@@ -1,5 +1,5 @@
-from PyQt5 import QtWidgets, uic, QtCore, QtGui
-from PyQt5.QtCore import pyqtSignal, Qt, pyqtSlot
+from PyQt6 import QtWidgets, uic, QtCore, QtGui
+from PyQt6.QtCore import pyqtSignal, Qt, pyqtSlot
 from contextlib import suppress
 import threading
 import qtawesome as qta
@@ -117,7 +117,7 @@ class SpiInterfaceWidget(WidgetWithExtension):
         file_dialog.setWindowTitle("Select File")
         file_dialog.setFileMode(QtWidgets.QFileDialog.ExistingFile)
 
-        if file_dialog.exec_():
+        if file_dialog.exec():
             file_paths = file_dialog.selectedFiles()
             if file_paths:
                 selected_file = file_paths[0]
