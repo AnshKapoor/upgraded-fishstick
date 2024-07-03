@@ -435,9 +435,7 @@ class Splitter(QSplitter):
             if widget.layout() and widget.layout() != widget:
                 Splitter.shrink_right(widget.layout(), margin)
                 margin = 0
-        print(type(widget))
-        if widget == "pyqtgraph.widgets.PlotWidget.PlotWidget":
-            l, t, r, b = widget.getContentsMargins()  # TODO PowerSupplyWidget object has no attribute getContentsMargins
+            l, t, r, b = widget.getContentsMargins()
             widget.setContentsMargins(int(l), int(t), int(margin), int(b))
 
     @staticmethod
@@ -446,7 +444,6 @@ class Splitter(QSplitter):
             if widget.layout() and widget.layout() != widget:
                 Splitter.shrink_left(widget.layout(), margin)
                 margin = 0
-        if widget == "pyqtgraph.widgets.PlotWidget.PlotWidget":
             l, t, r, b = widget.getContentsMargins()
             widget.setContentsMargins(int(margin), int(t), int(r), int(b))
 
