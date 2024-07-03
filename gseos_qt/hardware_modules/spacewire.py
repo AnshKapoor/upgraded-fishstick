@@ -58,7 +58,8 @@ class SpaceWire(Extendable):
         # self.boot = Boot(self)
         self.thread_lock = threading.Lock()  # type: threading.Lock
         self.do_receive = True
-        call_async(self.receive_thread)
+        if not self.spw_raw.dummy:
+            call_async(self.receive_thread)
 
         self.events = SpwEvents()
         self.listeners_raw = []
@@ -172,13 +173,13 @@ class SpaceWire(Extendable):
         return bytes()
 
     def receive_thread(self):
-        '''
+        """
         with self.thread_lock:
         This mechanism ensures that only one part of the code (one thread) 
         can access the critical section protected by the lock at any given time. 
         Other threads trying to access the same section will be blocked until 
         the lock is released by the thread that currently holds it.
-        '''
+        """
 
         if self.thread_lock.locked():
             print(f"receive_thread locked status on\n")
@@ -187,8 +188,10 @@ class SpaceWire(Extendable):
             message = bytes()
             receive = self.spw_raw.receive
 
-        #sub thread receive_thread is always running, it is in waiting to receive something
-            while self.do_receive: #when function is inside the while loop, thread_lock is always occupied until do_receive is changed to false
+            # sub thread receive_thread is always running, it is in waiting to receive something
+            # when function is inside the while loop, thread_lock is always occupied
+            # until do_receive is changed to false
+            while self.do_receive:
                 if not self.spw_raw.is_open:
                     time.sleep(.01)
                     continue
