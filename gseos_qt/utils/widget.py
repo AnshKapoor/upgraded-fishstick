@@ -31,9 +31,9 @@ def mix_color(c1: QColor, c2: QColor, percentage=.5):
     p = percentage
     q = 1 - percentage
 
-    r = QColor(*(v * 255 for v in (int(c1.redF() * p + c2.redF() * q), 
+    r = QColor(*(v * 255 for v in (int(c1.redF() * p + c2.redF() * q),
                                    int(c1.greenF() * p + c2.greenF() * q),
-                                   int(c1.blueF() * p + c2.blueF() * q), 
+                                   int(c1.blueF() * p + c2.blueF() * q),
                                    int(c1.alphaF() * p + c2.alphaF() * q)
                                    )))
     return r
@@ -200,7 +200,7 @@ class Switch(QAbstractButton):
 
         p.setBrush(self._brush if self._switch else self._thumb)
         p.drawEllipse(QRectF(o, 0., h, h))
-        
+
     def mouseReleaseEvent(self, e: QMouseEvent):
         if e.button() & Qt.LeftButton:
             self.start_timeout()
@@ -435,8 +435,10 @@ class Splitter(QSplitter):
             if widget.layout() and widget.layout() != widget:
                 Splitter.shrink_right(widget.layout(), margin)
                 margin = 0
-        l, t, r, b = widget.getContentsMargins()
-        widget.setContentsMargins(l, t, margin, b)
+        print(type(widget))
+        if widget == "pyqtgraph.widgets.PlotWidget.PlotWidget":
+            l, t, r, b = widget.getContentsMargins()  # TODO PowerSupplyWidget object has no attribute getContentsMargins
+            widget.setContentsMargins(int(l), int(t), int(margin), int(b))
 
     @staticmethod
     def shrink_left(widget, margin=2):
@@ -444,8 +446,9 @@ class Splitter(QSplitter):
             if widget.layout() and widget.layout() != widget:
                 Splitter.shrink_left(widget.layout(), margin)
                 margin = 0
-        l, t, r, b = widget.getContentsMargins()
-        widget.setContentsMargins(margin, t, r, b)
+        if widget == "pyqtgraph.widgets.PlotWidget.PlotWidget":
+            l, t, r, b = widget.getContentsMargins()
+            widget.setContentsMargins(int(margin), int(t), int(r), int(b))
 
     def resizeEvent(self, q_resize_event):
         QSplitter.resizeEvent(self, q_resize_event)

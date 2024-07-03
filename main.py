@@ -263,7 +263,7 @@ def run(argv: List[str]):
     import gseos_qt.qrc
     # from sip import SIP_VERSION_STR
 
-    if (os.name == 'nt' or os.name == 'WINDOWS_NT'):
+    if os.name == 'nt' or os.name == 'WINDOWS_NT':
         with suppress(Exception):
             import ctypes
             app_id = '%s.%s.%s.%s' % (COMPANY, PRODUCT, PRODUCT, VERSION_STR)  # arbitrary string
@@ -314,14 +314,18 @@ def change_dir(file: Optional[str] = None):
 
 if __name__ == '__main__':
     """ Main entry point of the program """
-
+    print(sys.version)
     change_dir()
 
     install_only = "--root-install" in sys.argv
     install_yes = "--install-y" in sys.argv
     try:
-        if check_installation() and not install_only:
-            run(sys.argv)
+        #if check_installation() and not install_only:
+        run(sys.argv)
     finally:
         if install_only:
             os.remove(TMP_FILE_HANDLE)
+
+# TODO restore panels fails under pyqt6
+# TODO File down upload file explorer keeps reopening
+# TODO check for program not closing properly
