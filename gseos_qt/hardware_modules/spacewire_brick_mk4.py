@@ -5,6 +5,7 @@ import threading
 import time
 import csv
 from PyQt6.QtCore import QObject, pyqtSignal
+import json
 
 module_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(module_path)
@@ -17,6 +18,7 @@ except (ValueError, ImportError):
     from utils.misc import WrappedMessageHandler
     from hardware_modules.spacewire import ISpaceWireBridge
     from utils.utilities import getFirstDevice, printPacketContents
+
 
 from STAR_system.STAR_exceptions import STARAPIError
 from STAR_system.data_chunk import DataChunk
@@ -64,20 +66,29 @@ class SpaceWireBrickMk4(ISpaceWireBridge):
         self.rx_open = False
         self.boolSendMultiplePackets = False
         self.signalEmitter = SpaceWireSignalEmitter()
-      
+
         try:
             self.firstDevice = getFirstDevice()
             self.dummy = False
+
             if self.firstDevice is None:
-                # dummy as brickmk4
+                # dummy as brickmk4 device
                 self.firstDevice = Device(65536)
-                print("creating dummy for show purpose")
+                print("creating dummy device for software demonstration purpose")
                 self.dummy = True
             print(f"{self.dummy=}")
         except (STARAPIError, TypeError, ValueError):
             print("Could not get first device")
             self.message_handler.error("No Spw Brick available")
             return
+
+        # write dummy state to json file for further use in i.e. plugins
+        dummy_dict = {"dummymode": self.dummy}
+        # Serializing json
+        json_object = json.dumps(dummy_dict, indent=4)
+        # Writing to json
+        with open("dummymode.json", "w") as outfile:
+            outfile.write(json_object)
         
         if self.firstDevice is None:
             print("No devices are connected.")
@@ -109,6 +120,9 @@ class SpaceWireBrickMk4(ISpaceWireBridge):
         self.message_handler.info("Brick Mk4 initialised.")
         if not self.dummy:
             self.deviceConfig.identify()
+
+    def get_dummy(self):
+        return self.dummy
 
     def __del__(self):
         self.close()
@@ -497,7 +511,7 @@ class SpaceWireBrickMk4(ISpaceWireBridge):
         else:
             receivedPackage = packet.getPacketData()
             receivedPackageLength = packet.getPacketLength()
-            if self.hasAddress == True:
+            if self.hasAddress:
                 receivedPackageAddress = receivedPackage[:len(self.transmittedAddress)]
                 receivedPackageData = receivedPackage[len(self.transmittedAddress):]
             else:
@@ -526,6 +540,9 @@ class SpaceWireBrickMk4(ISpaceWireBridge):
             self.message_handler.success("Deviced Reseted")
         except STARAPIError as err:
             self.error_printer(err)
+            if self.dummy:
+                self.message_handler.warning("dummy device cant be retested")
+                return
             try:
                 self.channel_rx.close()
             except STARAPIError as err:

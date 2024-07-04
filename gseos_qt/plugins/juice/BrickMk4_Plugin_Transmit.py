@@ -8,6 +8,7 @@ from typing import *
 import threading
 import random
 import time
+import json
 
 try:
     from .spacewire import SpaceWireConnection
@@ -17,6 +18,7 @@ try:
     from ...utils.recorder import Recordable
     from ...hardware_modules.juice_lib.BrickMk4_HW_Transmit import BrickMk4
     from ...utils.transmitResultStorage import TransmitResultStorage
+
 except (ValueError, ImportError):
     from plugins.juice.spacewire import SpaceWireConnection
     from utils.plugin import WidgetWithExtension
@@ -25,6 +27,7 @@ except (ValueError, ImportError):
     from utils.recorder import Recordable
     from gseos_qt.hardware_modules.juice_lib.BrickMk4_HW_Transmit import BrickMk4
     from utils.transmitResultStorage import TransmitResultStorage
+
 
 with suppress(Exception):
     from PIL import Image
@@ -56,7 +59,7 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
         self.spw = self.connection.hardware #hardware = BrickMk4_HW_Transmit
         self.ui = uic.loadUi("ui/BrickMk4.ui", self)
         self.getFrequency()
-        
+
         self.pushButton_preDefinedData.clicked.connect(self.simpleTransfer)
         self.pushButton_File.clicked.connect(self.fileTransfer)
         self.pushButton_Transmit.clicked.connect(self.send)
@@ -64,25 +67,58 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
         self.FreqSet.clicked.connect(self.setFrequency)
         self.multiplePackets.toggled.connect(self.buttonMultiplePacket)
         self.spw.spw.spw_raw.signalEmitter.dataReceived.connect(self.displayResults)
-        
+
+        self.load_dummy()
+
         deviceName = self.spw.getDeviceName()
-        self.comboBox.addItem(deviceName)
+        if not self.dummy:
+            self.comboBox.addItem(deviceName)
         self.storage = TransmitResultStorage()
 
         self.make_settings_btn(self.settingsButton)
 
-###testing button
+        self.update_ui()
+
+
+# testing button
         self.testingButton = QtWidgets.QPushButton("Loop Testing", self)
         # Position des Buttons festlegen
         self.testingButton.setGeometry(600, 10, 90, 25)  # Beispielposition und -größe
         # Verbinden Sie den Button mit der start_testing-Funktion
         self.testingButton.clicked.connect(self.start_testing)
-###testing button end
-        
+# testing button end
+
+    def load_dummy(self):
+        # load dummy state from json
+        f = open('dummymode.json')
+        data = json.load(f)
+        self.dummy = data["dummymode"]
+        f.close()
+
+    def update_ui(self):
+        """
+        updates ui to disable or enable functionality depending on whether dummy_mode is on or off
+        """
+        if self.dummy:
+            state = False
+            self.comboBox.setItemText(0, "SpaceWire Brick Mk4 Dummy")
+        else:
+            state = True
+            self.comboBox.setItemText(0, self.spw.getDeviceName())
+        print(f"{self.dummy=} {state=}")
+
+        self.FreqSet.setEnabled(state)
+        self.settingsButton.setEnabled(state)
+        self.pushButton_Transmit.setEnabled(state)
+        # self.testingButton.setEnabled(state)
+        self.pushButton_preDefinedData.setEnabled(state)
+        self.pushButton_File.setEnabled(state)
+
     def resetDevice(self):
         self.spw.spw_resetDevice()
         self.set_to_default_settings()
         self.getFrequency()
+        self.update_ui()
         return
 
     def simpleTransfer(self):
@@ -95,7 +131,6 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
         print("arbitary Buffer with settings packet size loaded")
                 
     def fileTransfer(self):
-          
         self.clearPacketDataBuffer()
         selected_file = ""
         file_dialog = QtWidgets.QFileDialog()
@@ -120,12 +155,10 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
             self.appendToPacketDataBuffer(intList)
             print("FileData Buffer loaded")        
             
-    def send(self):        
-        #print("#####################################################################################")
+    def send(self):
         self.clearAddressBuffer()
         self.appendToAddressBuffer(self.connection.spw_dest_addr.value)
-        #self.spw.spw_set_transmit_receive_channel_number(self.connection.spw_trans_channel.value, self.connection.spw_receive_channel.value)
-        if(self.tabWidget.currentIndex() == 2):
+        if self.tabWidget.currentIndex() == 2:
             self.clearPacketDataBuffer()
             self.userData()
     
@@ -142,12 +175,13 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
     def printReceivedPackage(self, receivedPackage):
         hex_strings = []
 
-        if(len(receivedPackage) > 100):
+        if len(receivedPackage) > 100:
             receivedPackage = receivedPackage[:100]
 
         for packetByte in receivedPackage:
             # Convert each byte to a hex string and append to the list
-            hex_strings.append(hex(packetByte)[2:].zfill(2))  # [2:] to remove the '0x' prefix, zfill(2) to ensure two characters
+            # [2:] to remove the '0x' prefix, zfill(2) to ensure two characters
+            hex_strings.append(hex(packetByte)[2:].zfill(2))
 
         # Join all hex strings with a space in between each
         hex_string_with_spaces = ' '.join(hex_strings)
@@ -162,15 +196,15 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
             print("Keine Eingabe gefunden.")
             return []
         cleanedText = self.filterInput(input)
-        #Division of the text into two-line segments and conversion into bytes
+        # Division of the text into two-line segments and conversion into bytes
         bytesList = bytes.fromhex(cleanedText)
-        intList =  list(bytesList)
+        intList = list(bytesList)
         self.appendToPacketDataBuffer(intList)
 
     def filterInput(self, input):
-        #Removal of non-hexadecimal characters
+        # Removal of non-hexadecimal characters
         cleanedText = ''.join(filter(lambda x: x in '0123456789abcdefABCDEF', input))
-        if(len(cleanedText) % 2 != 0):
+        if len(cleanedText) % 2 != 0:
             cleanedText += '0' 
         return cleanedText
 
@@ -213,7 +247,6 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
             self.addressBuffer.clear()
 
     def start_testing(self):
-        #for i in range(1):
         print("star_testing called")
         testPacketSizes = list(range(0,512000,1000))
         for packetSizes in testPacketSizes:
@@ -223,14 +256,13 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
             self.appendToPacketDataBuffer(tmpPacketDataBuffer)
             self.send_testing()
             self.spw.spw_waitEvent()
-        #i=i+1
         print("testing done")
 
     def send_testing(self):
-        #print("#####################################################################################")
         self.clearAddressBuffer()
         self.appendToAddressBuffer(self.connection.spw_dest_addr.value)
         self.spw.spw_send(self.packetDataBuffer,self.addressBuffer)
+
 
 VERSION = 1
 NAME = "SpaceWire Testing"
