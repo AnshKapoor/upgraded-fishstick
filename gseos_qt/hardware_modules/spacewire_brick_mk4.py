@@ -532,6 +532,23 @@ class SpaceWireBrickMk4(ISpaceWireBridge):
     def reset_Spw_Device(self):
         try:
             self.firstDevice.resetDevice()
+
+            self.dummy = False
+            if self.firstDevice is None:
+                # dummy as brickmk4 device
+                self.firstDevice = Device(65536)
+                print("creating dummy device for software demonstration purpose")
+                self.dummy = True
+            print(f"{self.dummy=}")
+
+            # write dummy state to json file for further use in i.e. plugins
+            dummy_dict = {"dummymode": self.dummy}
+            # Serializing json
+            json_object = json.dumps(dummy_dict, indent=4)
+            # Writing to json
+            with open("dummymode.json", "w") as outfile:
+                outfile.write(json_object)
+
             self.port1.clearPortErrors()
             self.port2.clearPortErrors()
             self.configPort0.clearPortErrors()
@@ -541,7 +558,7 @@ class SpaceWireBrickMk4(ISpaceWireBridge):
         except STARAPIError as err:
             self.error_printer(err)
             if self.dummy:
-                self.message_handler.warning("dummy device cant be retested")
+                self.message_handler.warning("no reset for dummy device possible")
                 return
             try:
                 self.channel_rx.close()
@@ -578,7 +595,6 @@ class SpaceWireBrickMk4(ISpaceWireBridge):
             })
 
     def spw_raw_setTransmitSignallingRate(self, bitRateMbitSec, linkNum):
-
         if linkNum == 1:
             self.link1.setTransmitSignallingRate(bitRateMbitSec)
         elif linkNum == 2:

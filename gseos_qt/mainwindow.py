@@ -119,7 +119,7 @@ class DetachedWindow(QtWidgets.QMainWindow):
         self.setGeometry(geo)
         self.move(pos)
         self.show()
-        if (os.name == 'nt' or os.name == 'WINDOWS_NT'):
+        if os.name == 'nt' or os.name == 'WINDOWS_NT':
             self.hide()
             self.show()
 
@@ -168,14 +168,6 @@ class DetachedWindow(QtWidgets.QMainWindow):
             self.main_window.drop_hint.fade_out()
         elif self.dragging:
             self.raise_()
-
-        # if q_event.type() != self.last_event:
-        #     print("%04d: %s" % (self.i, event_name(q_event.type())))
-        #     self.i += 1
-        # elif self.llast_event != self.last_event:
-        #     print("%04d: ..." % self.i)
-        #     self.i += 1
-        # self.llast_event = self.last_event
 
         self.last_event = q_event.type()
         return QtWidgets.QMainWindow.event(self, q_event)
@@ -503,11 +495,12 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         self.bottom_dock.setObjectName("BottomDock")
         self.bottom_dock.setWidget(self.bottom_widget)
         self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.bottom_dock)
-
         self.message_handler = MessageHandler(self.bottom_widget.textBrowser)
         glob.Recorder.set_message_handler(self.message_handler)
 
+        # TODO on restore panels from view crashes here
         self.load_plugins()
+
         self.load_screens()
         self.tree_widget = QtWidgets.QTreeView()
         self.tree_widget.setModel(self.model)
@@ -556,8 +549,8 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
                     self.background_tasks.append(Task(self))
                     
         # Print loaded plugin names and their order
-        for i, plugin_name in enumerate(loaded_plugin_names, 1):
-            print(f"Loaded plugin {i}: {plugin_name}")
+        # for i, plugin_name in enumerate(loaded_plugin_names, 1):
+        #    print(f"Loaded plugin {i}: {plugin_name}")
             
         return n
 

@@ -68,7 +68,7 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
         self.multiplePackets.toggled.connect(self.buttonMultiplePacket)
         self.spw.spw.spw_raw.signalEmitter.dataReceived.connect(self.displayResults)
 
-        self.load_dummy()
+        self.update_ui()
 
         deviceName = self.spw.getDeviceName()
         if not self.dummy:
@@ -76,9 +76,6 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
         self.storage = TransmitResultStorage()
 
         self.make_settings_btn(self.settingsButton)
-
-        self.update_ui()
-
 
 # testing button
         self.testingButton = QtWidgets.QPushButton("Loop Testing", self)
@@ -89,19 +86,24 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
 # testing button end
 
     def load_dummy(self):
-        # load dummy state from json
-        f = open('dummymode.json')
-        data = json.load(f)
+        """
+        loads dummy state from file, determined and written in hwmodules spacewire_brick_mk4.py
+        dummy True means no connected device, but UI shows anyway with limited functionality for demonstration purpose
+        """
+        with open('dummymode.json', 'rt') as f:
+            data = json.load(f)
         self.dummy = data["dummymode"]
-        f.close()
 
     def update_ui(self):
         """
         updates ui to disable or enable functionality depending on whether dummy_mode is on or off
         """
+        self.load_dummy()
+
         if self.dummy:
             state = False
-            self.comboBox.setItemText(0, "SpaceWire Brick Mk4 Dummy")
+            self.comboBox.clear()
+            self.comboBox.addItem("SpaceWire Brick Mk4 Dummy")
         else:
             state = True
             self.comboBox.setItemText(0, self.spw.getDeviceName())
@@ -118,6 +120,7 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
         self.spw.spw_resetDevice()
         self.set_to_default_settings()
         self.getFrequency()
+
         self.update_ui()
         return
 
