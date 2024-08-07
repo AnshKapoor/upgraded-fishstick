@@ -81,7 +81,7 @@ class DropHint(QtWidgets.QWidget):
         if self.mouse_inside:
             p.fillRect(r1, QtGui.QColor(255, 255, 255, 75))
         #b = QtGui.QBackingStore
-        #b.endPaint()
+        #b.endPaint() TODO check what this does
         return QtWidgets.QWidget.paintEvent(self, q_paint_event)
 
     def fade_in(self):

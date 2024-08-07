@@ -154,7 +154,7 @@ def check_py(try_update: bool = False):
         if try_update and (version[0] < 3 or version[1] < 6):
             if install_yes or query_yes_no("Your python is outdated. Attempt automatic upgrade?"):
                 import subprocess
-                if (os.name == 'nt' or os.name == 'WINDOWS_NT'):
+                if os.name == 'nt' or os.name == 'WINDOWS_NT':
                     subprocess.call(["install-windows.bat"])
                     subprocess.call(["C:\\Python3.6\\python.exe", os.path.abspath(__file__)])
                     return 2  # exit
@@ -312,16 +312,38 @@ def change_dir(file: Optional[str] = None):
     os.chdir(dir_name)
 
 
+def check_modules():
+    """
+    Before program start checks if all necessary modules can be imported
+    Returns: True if all modules were imported, False otherwise
+
+    """
+    imports = ["PyQt6", "serial", "pyqtgraph", "qtawesome", "matplotlib", "pympler", "pygit2", "dill", "numpy",
+               "pythonnet", "json", "time"]
+    modules = {}
+    success = True
+    for x in imports:
+        try:
+            modules[x] = __import__(x)
+            print(f"Successfully imported {x}.")
+        except ImportError:
+            print(f"Error importing {x}.")
+            success = False
+    return success
+
+
 if __name__ == '__main__':
     """ Main entry point of the program """
     print(sys.version)
     change_dir()
 
+    check_modules()
+
     install_only = "--root-install" in sys.argv
     install_yes = "--install-y" in sys.argv
     try:
-        #if check_installation() and not install_only:
-        run(sys.argv)
+        if check_modules():
+            run(sys.argv)
     finally:
         if install_only:
             os.remove(TMP_FILE_HANDLE)
