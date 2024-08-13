@@ -2,6 +2,8 @@ import queue
 import random
 import time
 import threading
+from STAR_system.data_chunk import DataChunk
+from ClientSocket import Client
 
 from gseos_qt.utils.utilities import getFirstDevice, printPacketContents
 from STAR_system.link_port import LinkPort
@@ -14,19 +16,23 @@ from STAR_system.config_port import ConfigPort
 from STAR_system.port import Port
 
 
-class Loopback:
-    def __init__(self, sendQueue, receiveQueue, transmitChannel, receiveChannel):
-        self.transmitChannel = transmitChannel
-        self.receiveChannel = receiveChannel
+class Spacewire:
+    """..."""
+    def __init__(self, configuration=None):
+        self.config = configuration
+        self.transmitChannel = self.config.get("transmitChannel")
+        self.receiveChannel = self.config.get("receiveChannel")
         self.channel_tx = None
         self.channel_rx = None
+        self.client = None
         self.firstDevice = getFirstDevice()
-        self.sendQueue = sendQueue
-        self.receiveQueue = receiveQueue
+        self.serverToClient = queue.Queue()
+        self.clientToServer = queue.Queue()
 
         self.destinationAddress = None
         self.receivedPacketsNumber = 0
-        self.doReceive = True
+
+        self.createSocketClient()
 
         self.deviceConfig = DeviceConfig(self.firstDevice.deviceID)
         self.configPort0 = ConfigPort(self.deviceConfig.deviceID, 0)
@@ -37,30 +43,55 @@ class Loopback:
 
         # self.deviceConfig.identify()
 
-        threading.Thread(target=self.receive_thread, args=()).start()
-        threading.Thread(target=self.send_thread, args=()).start()
+        tr = threading.Thread(target=self.receive_thread, args=(), daemon=True)
+        tr.start()
+        ts = threading.Thread(target=self.send_thread, args=(), daemon=True)
+        ts.start()
+
+    def createSocketClient(self, host='127.0.0.1', port=5555):
+        """
+        create client socket for given host and port
+        :param str host: IPV4 address of host system
+        :param int port: port of host system
+        """
+        self.client = Client(self.serverToClient, self.clientToServer, host, port)
+        self.client.start()
+        threading.Thread(target=self.singleSend).start()
+        # threading.Thread(target=self.testing).start()
+
+    def testing(self):
+        for i in range(3):
+            data = [random.randrange(100) for j in range(10)]
+            self.serverToClient.put(data)
+            time.sleep(2)
+
+    def singleSend(self):
+        data = [random.randrange(10) for j in range(3)]
+        self.serverToClient.put(data)
 
     def send_thread(self):
+        """
+        send thread for sending data over spacewire, the data was received via socket and put in the
+        serverToClient queue
+        """
         while True:
-            item = self.sendQueue.get(block=True, timeout=None)
-            self.sendQueue.task_done()
+            item = self.serverToClient.get(block=True, timeout=None)
+            print(f"{item} in send thread SPW conn")
+            self.serverToClient.task_done()
             self.send(item)
 
-    def send(self, item, address=None):
-        print(f"{item} item sent on channel {self.transmitChannel}")
-        # Create the channel object
+    def send(self, item):
+        """..."""
         self.channel_tx = Channel(self.transmitChannel, self.firstDevice.deviceID)
-
-        # Open channel to send out of and receive into.
         self.channel_tx.openChannelToDevice(STAR_CHANNEL_DIRECTION.OUT, queued=False)
 
-        # self.destinationAddress = address
-        dataPacket = Packet(item, self.destinationAddress, STAR_EOP_TYPE.STAR_EOP_TYPE_EOP)
+        if not isinstance(item, list):
+            item = [item]
+        dataChunk = DataChunk(item, isStart=True, eop=STAR_EOP_TYPE.STAR_EOP_TYPE_EOP)
+        dataPacket = Packet([dataChunk], self.destinationAddress, STAR_EOP_TYPE.STAR_EOP_TYPE_EOP)
 
-        # Create send transfer operation.
         sendTransferOperation = TransmitOperation([dataPacket])
 
-        # Start transmitting the packet.
         self.channel_tx.submitTransferOperation(sendTransferOperation)
 
         # Wait indefinitely for transfer to complete.
@@ -71,14 +102,20 @@ class Loopback:
             print("Packet was not sent successfully.")
 
         self.channel_tx.close()
+        print(f"{item} sent on channel {self.transmitChannel}")
 
     def receive_thread(self):
+        """
+        receive thread for receiving  data over spacewire, received data is stored in the clientToServer queue
+        so that it can be transferred to server via socket by the socket client
+        """
         while True:
             message = self.receive()
-            # print(f"received {message}")
-            self.receiveQueue.put(message, block=False, timeout=None)
+            print(f"{message} in spw receive thread spw")
+            self.clientToServer.put(message, block=False, timeout=None)
 
     def receive(self):
+        """receives data over spacewire connection in packet form"""
         # Create the channel object
         self.channel_rx = Channel(self.receiveChannel, self.firstDevice.deviceID)
 
@@ -113,50 +150,3 @@ class Loopback:
 
         self.channel_rx.close()
         return data
-
-
-def test():
-    sendQueue = queue.Queue()
-    sendQueue1 = queue.Queue()
-    receiveQueue = queue.Queue()
-    receiveQueue1 = queue.Queue()
-
-    Loopback(sendQueue, receiveQueue, 1, 2)
-    Loopback(sendQueue1, receiveQueue1, 2, 1)
-
-    while True:
-        payload = [random.randrange(0, 10) for i in range(10)]
-        sendQueue.put(payload)
-
-        time.sleep(1)
-
-        payload = [random.randrange(0, 10) for i in range(10)]
-        sendQueue1.put(payload)
-
-        time.sleep(1)
-        receiveQueue.get()
-        receiveQueue1.get()
-
-
-def test1():
-    sendQueue = queue.Queue()
-    receiveQueue = queue.Queue()
-    Loopback(sendQueue, receiveQueue, 1, 2)
-    while True:
-        payload = [random.randrange(0, 10) for i in range(10)]
-        sendQueue.put(payload)
-
-
-class DataHandler:
-    def __init__(self):
-        pass
-
-    def readReceivedDate(self):
-        pass
-
-    def sendData(self):
-        pass
-
-
-if __name__ == "__main__":
-    test()
