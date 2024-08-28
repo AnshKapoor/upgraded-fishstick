@@ -1,86 +1,123 @@
+import queue
 import socket
 import threading
-import json
-import time
-from SpacewireConnection import Spacewire
+import struct
 
 
 class Server(threading.Thread):
     """
-    Socket type server
+    TCP type Socket server
+    :param sendQueue:
+    :param receiveQueue:
     :param str host: IPV4 address of host system
     :param int port: port of host system
     """
-    def __init__(self, host='127.0.0.1', port=5555):
+    def __init__(self, sendQueue, receiveQueue, cmdSendQueue, cmdReceiveQueue, host='127.0.0.1', port=5555):
         super(Server, self).__init__()
         self.host = host
         self.port = port
-        self.clients = []
-        self.client_handler = None
-        self.config_list = None
-        self.connections = []
+
+        self.sendQueue = sendQueue
+        self.receiveQueue = receiveQueue
+        self.cmdSendQueue = cmdSendQueue
+        self.cmdReceiveQueue = cmdReceiveQueue
+
+        self.reopen = True
+        self.active = True
+        self.clientSocket = None
+        self.receiveThread = None
+        self.sendThread = None
+        self.addr = ""
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def run(self):
         self.server.bind((self.host, self.port))
-        self.server.listen()
+        # maximum of one connection: 1
+        self.server.listen(1)
         print(f"Server listening on {self.host}:{self.port}")
 
-        self.loadConfig()
-        self.createConnections()
         self.searchForConnections()
 
-    def loadConfig(self, filename="config.json"):
-        """
-        loads config file
-        :param str filename: filename of json configuration file, needs to be in the same directory
-        """
-        with open(filename) as user_file:
-            file_contents = user_file.read()
-        self.config_list = json.loads(file_contents)
-        
-    def createConnections(self):
-        """
-        create instances of connection classes according to loaded configuration,
-        they themselves start the socket clients
-        """
-        for i in range(len(self.config_list)):
-            match self.config_list[i].get("type"):
-                case "spwBrickMK4":
-                    _ = Spacewire(self.config_list[i])
-                    self.connections.append(_)
-
     def searchForConnections(self):
-        try:
-            while True:
-                client_socket, addr = self.server.accept()
-                print(f"Connection established with {addr}")
-                self.client_handler = threading.Thread(target=self.clientHandler, args=(client_socket, addr))
-                self.client_handler.start()
-        except:
-            print("An error occurred")
-        finally:
-            self.server.close()
-            for client in self.clients:
-                client.close()
+        """..."""
+        print("searching for new connection")
+        self.clientSocket, self.addr = self.server.accept()
+        print(f"Connection established with {self.addr}")
 
-    def clientHandler(self, clientSocket, addr):
-        """method for handling client connections"""
-        self.clients.append(clientSocket)
-        try:
-            while True:
-                message = clientSocket.recv(1024).decode('utf-8')
-                if not message:
-                    break
-                print(f"Server received: {message} from client on port {addr[1]}")
-                print("--------------------------------------")
-                # self.send(clientSocket, "ack from server")
-                # TODO decode message, maybe sort by connection type, move to DB or extensions
-        except ConnectionResetError:
+        self.active = True
+
+        self.clientSocket.settimeout(0.001)
+
+        self.receiveThread = threading.Thread(target=self.receiveMessage, args=()).start()
+        self.sendThread = threading.Thread(target=self.sendMessage(), args=()).start()
+
+        while self.active:
             pass
-        finally:
-            self.clients.remove(clientSocket)
-            clientSocket.close()
+        self.closeConnectionToClient()
 
-    def send(self, clientSocket, message):
-        clientSocket.send(message.encode('utf8'))
+    def closeConnectionToClient(self):
+        """..."""
+        self.active = False
+        self.clientSocket.close()
+        if self.reopen:
+            self.searchForConnections()
+
+    def receiveMessage(self):
+        """receive thread for receiving socket messages from client(core class)"""
+        while self.active:
+            try:
+                # 2 Byte length prefix ( maximum message length 65535)
+                length_data = self.clientSocket.recv(2)
+                # client closed connection, message received is b''
+                if not length_data:
+                    print("connection closed by client")
+                    self.reopen = False
+                    break
+                # get length (first list element) as int form byte
+                length = struct.unpack('!h', length_data)[0]
+                message = self.clientSocket.recv(length)
+                # TODO sort messages correctly
+                self.receiveQueue.put(message)
+                # self.cmdReceiveQueue.put(message)
+                print(f"Server received: {message} from client on port {self.addr[1]} with length {len(message)}")
+                print("------------------------------------------------------------------------------------")
+            except socket.timeout:
+                continue
+            except ConnectionResetError:
+                print("connection reset")
+                break
+            except struct.error:
+                print("struct error")
+                break
+        self.active = False
+        print("server receive thread gone")
+
+    def sendMessage(self):
+        """send thread for sending messages from server to client (core class)"""
+        while self.active:
+            # check data queue for packets
+            try:
+                item = self.sendQueue.get(block=False)
+                self.sendQueue.task_done()
+                length = struct.pack('!h', len(item))  # 2-byte length prefix
+                self.clientSocket.sendall(length + bytes(item))
+                print(f"{item} in Socket server send")
+            except queue.Empty:
+                pass
+            except ConnectionResetError:
+                break
+
+            # check cmd queue for packets
+            try:
+                item = self.cmdSendQueue.get(block=False)
+                self.sendQueue.task_done()
+                length = struct.pack('!h', len(item))  # 2-byte length prefix
+                self.clientSocket.sendall(length + bytes(item))
+                print(f"{item} in Socket server send")
+            except queue.Empty:
+                pass
+            except ConnectionResetError:
+                break
+
+        self.active = False
+        print("server send thread gone")
