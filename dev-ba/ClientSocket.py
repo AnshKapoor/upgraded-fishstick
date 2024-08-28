@@ -57,8 +57,13 @@ class Client(threading.Thread):
                 item = self.sendQueue.get(block=False)
                 self.sendQueue.task_done()
                 length = struct.pack('!h', len(item))  # 2-byte length prefix
-                self.client.sendall(length + bytes(item))
-                print(f"{item} in send thread socket client with length {int.from_bytes(length)}, {length}")
+                # check for correct sending format of payload
+                if isinstance(item, bytes):
+                    self.client.sendall(length + item)
+                else:
+                    self.client.sendall(length + bytes(item))
+
+                print(f"{item} in send thread socket client with length {int.from_bytes(length)}")
             except queue.Empty:
                 continue
             except ConnectionResetError:
