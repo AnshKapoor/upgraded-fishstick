@@ -1,10 +1,23 @@
 import time
+from datetime import datetime
+
 
 import strictyaml
 import path
 
 
 if __name__ == "__main__":
+    timeNs = time.time_ns()
+
+    ba = bytearray(int(timeNs).to_bytes(8, 'big'))
+    baInt = int.from_bytes(ba)
+
+    dt = datetime.fromtimestamp(timeNs / 1000000000)
+    print(dt)
+    print(timeNs)
+
+
+def test():
     schema = strictyaml.Map({
         "connections": strictyaml.Map({
             "spacewire": strictyaml.MapCombined({}, strictyaml.Str(), strictyaml.Map({
