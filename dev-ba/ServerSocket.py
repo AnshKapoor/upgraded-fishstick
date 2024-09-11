@@ -2,6 +2,8 @@ import queue
 import socket
 import threading
 import struct
+from datetime import datetime
+import pickle
 
 
 class Server(threading.Thread):
@@ -73,13 +75,20 @@ class Server(threading.Thread):
                     print("connection closed by client")
                     self.reopen = False
                     break
-                # get length (first list element) as int form byte
                 length = struct.unpack('!h', length_data)[0]
                 message = self.clientSocket.recv(length)
-                # TODO sort messages correctly
-                self.receiveQueue.put(message)
-                # self.cmdReceiveQueue.put(message)
-                print(f"Server received: {message} from client on port {self.addr[1]} with length {len(message)}")
+                data = pickle.loads(message)
+                match data.ptype:
+                    case 1:
+                        self.receiveQueue.put(data)
+                    case 2:
+                        self.cmdReceiveQueue.put(data)
+                    case _:
+                        print("invlaid packet format")
+
+                print(f"Server received: {data.payload} from client on port {self.addr[1]}")
+                print(vars(data))
+
                 print("------------------------------------------------------------------------------------")
             except socket.timeout:
                 continue
@@ -99,8 +108,10 @@ class Server(threading.Thread):
             try:
                 item = self.sendQueue.get(block=False)
                 self.sendQueue.task_done()
-                length = struct.pack('!h', len(item))  # 2-byte length prefix
-                self.clientSocket.sendall(length + bytes(item))
+                # 2-byte length prefix
+                length = struct.pack('!h', len(item))
+                self.clientSocket.send(length)
+                self.clientSocket.send(bytes(item))
                 print(f"{item} in Socket server send")
             except queue.Empty:
                 pass
@@ -112,7 +123,8 @@ class Server(threading.Thread):
                 item = self.cmdSendQueue.get(block=False)
                 self.sendQueue.task_done()
                 length = struct.pack('!h', len(item))  # 2-byte length prefix
-                self.clientSocket.sendall(length + bytes(item))
+                self.clientSocket.send(length)
+                self.clientSocket.send(bytes(item))
                 print(f"{item} in Socket server send")
             except queue.Empty:
                 pass
