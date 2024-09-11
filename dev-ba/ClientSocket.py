@@ -3,6 +3,7 @@ import threading
 import queue
 import struct
 import time
+import pickle
 
 
 class Client(threading.Thread):
@@ -56,14 +57,20 @@ class Client(threading.Thread):
             try:
                 item = self.sendQueue.get(block=False)
                 self.sendQueue.task_done()
-                length = struct.pack('!h', len(item))  # 2-byte length prefix
-                # check for correct sending format of payload
-                if isinstance(item, bytes):
-                    self.client.sendall(length + item)
-                else:
-                    self.client.sendall(length + bytes(item))
+                # 2-byte length prefix
+                # length = struct.pack('!h', len(item[0:-1]) + 8)
 
-                print(f"{item} in send thread socket client with length {int.from_bytes(length)}")
+                # 1 type, 1 origin, 1 destination, 8 timestamp, 2 length payload, x payload, so 13 + x
+                # length = bytearray([len(item.payload) + 13])
+                # print(f"{length=}")
+
+                dataString = pickle.dumps(item)
+                length = struct.pack('!h', len(dataString))
+                print(length)
+                self.client.send(length)
+                self.client.send(dataString)
+
+                print(f"{item.payload} in send thread socket client")
             except queue.Empty:
                 continue
             except ConnectionResetError:
