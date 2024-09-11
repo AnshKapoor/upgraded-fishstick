@@ -28,17 +28,31 @@ class Spacewire:
         self.active = True
         self.firstDevice = getFirstDevice()
 
+
+        print(self.firstDevice.getDeviceName())
+        print(self.firstDevice.getChannels())
+        print(self.firstDevice.getSerialNumber())
+        # SpaceWire Brick Mk4[SN21216 - 0043]
+        # [ < STAR_system.channel.Channel object at 0x0000020D1F922330 >,
+        # < STAR_system.channel.Channel object at0x0000020D2FC39F10 >,
+        # < STAR_system.channel.Channel object at 0x0000020D2FC39F40 >]
+        # 21216 - 0043
+        x = Channel(0, self.firstDevice.deviceID)
+        print(x.channelID)
+        for c in self.firstDevice.getChannels():
+            print(c.channelNumber)
+
         self.receiveQueue = queue.Queue()
         self.sendQueue = queue.Queue()
         self.cmdReceiveQueue = queue.Queue()
         self.cmdSendQueue = queue.Queue()
 
-        self.destinationAddress = None
-        self.receivedPacketsNumber = 0
 
         self.server = Server(self.receiveQueue, self.sendQueue, self.cmdReceiveQueue, self.cmdSendQueue,
-                             self.host, self.port).start()
+                             self.host, self.port)
+        self.server.start()
 
+        # TODO only one channel send and receive or multiple depending on config file?
         self.channel_tx = Channel(self.transmitChannel, self.firstDevice.deviceID)
         self.channel_tx.openChannelToDevice(STAR_CHANNEL_DIRECTION.OUT, queued=False)
 
@@ -47,16 +61,18 @@ class Spacewire:
 
         self.deviceConfig = DeviceConfig(self.firstDevice.deviceID)
         self.configPort0 = ConfigPort(self.deviceConfig.deviceID, 0)
+
         self.port1 = Port(self.deviceConfig.deviceID, 1)
         self.link1 = LinkPort(self.firstDevice.deviceID, 1)
+
         self.port2 = Port(self.deviceConfig.deviceID, 2)
         self.link2 = LinkPort(self.firstDevice.deviceID, 2)
 
-        tr = threading.Thread(target=self.receive_thread, args=(), daemon=True)
+        tr = threading.Thread(target=self.receiveThread, args=(), daemon=True)
         tr.start()
-        ts = threading.Thread(target=self.send_thread, args=(), daemon=True)
+        ts = threading.Thread(target=self.sendThread, args=(), daemon=True)
         ts.start()
-
+        #
         self.main()
 
     def main(self):
@@ -71,13 +87,13 @@ class Spacewire:
             # TODO sending of cmd messages here
         print("spw main thread gone")
 
-    def send_thread(self):
+    def sendThread(self):
         """
         send thread for sending data over spacewire, the data was received via socket and put in the
         clientToServer queue
         """
         while self.active:
-            # go through data queue
+            # check for data data queue
             try:
                 item = self.sendQueue.get(block=False)
                 print(f"{item} from data in send thread SPW conn")
@@ -85,10 +101,10 @@ class Spacewire:
                 self.send(item)
             except queue.Empty:
                 pass
-            # go through cmd queue
+            # check for data in cmd queue
             try:
                 item = self.cmdSendQueue.get(block=False)
-                print(f"{item} from data in send thread SPW conn")
+                print(f"{item} from cmd in send thread SPW conn")
                 self.sendQueue.task_done()
                 self.send(item)
             except queue.Empty:
@@ -118,7 +134,7 @@ class Spacewire:
             print("Packet was not sent successfully.")
         print(f"{sendItem} sent on channel {self.transmitChannel}")
 
-    def receive_thread(self):
+    def receiveThread(self):
         """
         receive thread for receiving  data over spacewire, received data is stored in the serverToClient queue
         so that it can be transferred to server via socket by the socket client
@@ -134,6 +150,9 @@ class Spacewire:
             # self.cmdReceiveQueue.put(message, block=False)
             # catch queue.Full:
             # print("cmd receive queue full")
+
+            # create timestamp of reception
+
             try:
                 self.receiveQueue.put(message, block=False)
             except queue.Full:
