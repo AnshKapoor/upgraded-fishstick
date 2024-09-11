@@ -6,6 +6,7 @@ import path
 
 from ClientSocket import Client
 from DataHandlerCore import DataHandler
+from Packet import Packet
 
 
 class Core:
@@ -65,15 +66,18 @@ class Core:
 
 if __name__ == "__main__":
     c = Core()
-    # for j in range(5):
-    #     l = [random.randrange(10) for i in range(16 - 2 * j)]
-    #     c.sendQueue.put(l)
+    for j in range(5):
+        l = [random.randrange(10) for i in range(16 - 2 * j)]
+        p = Packet(1, 1, 2, time.time_ns(), len(l), l)
+        c.sendQueue.put(p)
 
     while True:
         time.sleep(1)
         n = input("message: ")
         nListInt = list(map(int, n.split(" ")))
-        c.sendQueue.put(nListInt)
+        print(nListInt)
+        p = Packet(1, 1, 2, time.time_ns(), len(nListInt), nListInt)
+        c.sendQueue.put(p)
         if n == "255":
             c.client.endConnection()
             break
