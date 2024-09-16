@@ -1,36 +1,41 @@
 import queue
-import time
-import random
 import strictyaml
 import path
 
 from ClientSocket import Client
 from DataHandlerCore import DataHandler
-from Packet import Packet
+from enums import Ptype
 
 
 class Core:
     def __init__(self):
         self.parsedConfig = {}
         self.clients = []
-        self.client = None
+        self.dataHandler = DataHandler()
+        self.cmdSendQueue = queue.Queue()
+        self.cmdReceiveQueue = queue.Queue()
+        self.main()
 
-        self.receiveQueue = queue.Queue()
-        self.sendQueue = queue.Queue()
-
-        self.dataHandler = DataHandler(self.receiveQueue, self.sendQueue)
-        self.dataHandler.start()
-
+    def main(self):
         self.loadConfig()
         self.createClients()
+        self.dataHandler.start()
 
     def createClients(self):
-        for conn in self.parsedConfig["connections"]["spacewire"]:
+        """..."""
+
+        for ID, conn in enumerate(self.parsedConfig["connections"]["spacewire"]):
             match conn:
                 case "brickmk4":
-                    self.client = Client(self.receiveQueue, self.sendQueue)
-                    self.client.start()
-                    self.clients.append(self.client)
+                    host = self.parsedConfig["connections"]["spacewire"]["brickmk4"]["host"]
+                    port = self.parsedConfig["connections"]["spacewire"]["brickmk4"]["port"]
+                    receiveQueue = queue.Queue()
+                    sendQueue = queue.Queue()
+
+                    client = Client(self.dataHandler, receiveQueue, sendQueue, self.cmdReceiveQueue, self.cmdSendQueue,
+                                    host, port, ID)
+                    client.start()
+                    self.clients.append(client)
                 case _:
                     print(f"{conn} not supported yet.")
 
@@ -44,8 +49,6 @@ class Core:
                 "spacewire": strictyaml.MapCombined({}, strictyaml.Str(), strictyaml.Map({
                     "host": strictyaml.Str(),
                     "port": strictyaml.Int(),
-                    strictyaml.Optional("sendChannel"): strictyaml.Int(),
-                    strictyaml.Optional("receiveChannel"): strictyaml.Int()
                 })),
                 "SPI": strictyaml.Map({
                     "port": strictyaml.Str(),
@@ -66,18 +69,8 @@ class Core:
 
 if __name__ == "__main__":
     c = Core()
-    for j in range(5):
-        l = [random.randrange(10) for i in range(16 - 2 * j)]
-        p = Packet(1, 1, 2, time.time_ns(), len(l), l)
-        c.sendQueue.put(p)
 
     while True:
-        time.sleep(1)
         n = input("message: ")
-        nListInt = list(map(int, n.split(" ")))
-        print(nListInt)
-        p = Packet(1, 1, 2, time.time_ns(), len(nListInt), nListInt)
-        c.sendQueue.put(p)
-        if n == "255":
-            c.client.endConnection()
-            break
+        h = bytes(n, "utf-8")
+        c.dataHandler.toSendQueue(0, Ptype.DATA.value, h)

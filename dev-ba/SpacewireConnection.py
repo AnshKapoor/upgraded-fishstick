@@ -1,196 +1,71 @@
 import queue
 import threading
-from ServerSocket import Server
 
+from ChannelSPW import ChannelSPW
 from util import getFirstDevice
-from STAR_system.data_chunk import DataChunk
-from STAR_system.link_port import LinkPort
-from STAR_system.packet import Packet
-from STAR_system.device_config import DeviceConfig
-from STAR_system.STAR_enums import STAR_EOP_TYPE, STAR_CHANNEL_DIRECTION, STAR_TRANSFER_STATUS
-from STAR_system.channel import Channel
-from STAR_system.transfer_operations import TransmitOperation, ReceiveOperation
-from STAR_system.config_port import ConfigPort
-from STAR_system.port import Port
 
 
 class Spacewire:
     """..."""
     def __init__(self, configuration=None):
         self.config = configuration
-        self.transmitChannel = 1
-        self.receiveChannel = 2
-        self.host = configuration.get("host")
-        self.port = configuration.get("port")
-        self.channel_tx = None
-        self.channel_rx = None
-        self.server = None
         self.active = True
-        self.firstDevice = getFirstDevice()
+        self.channels = []
 
-
-        print(self.firstDevice.getDeviceName())
-        print(self.firstDevice.getChannels())
-        print(self.firstDevice.getSerialNumber())
-        # SpaceWire Brick Mk4[SN21216 - 0043]
-        # [ < STAR_system.channel.Channel object at 0x0000020D1F922330 >,
-        # < STAR_system.channel.Channel object at0x0000020D2FC39F10 >,
-        # < STAR_system.channel.Channel object at 0x0000020D2FC39F40 >]
-        # 21216 - 0043
-        x = Channel(0, self.firstDevice.deviceID)
-        print(x.channelID)
-        for c in self.firstDevice.getChannels():
-            print(c.channelNumber)
-
-        self.receiveQueue = queue.Queue()
-        self.sendQueue = queue.Queue()
         self.cmdReceiveQueue = queue.Queue()
         self.cmdSendQueue = queue.Queue()
 
+        self.firstDevice = getFirstDevice()
 
-        self.server = Server(self.receiveQueue, self.sendQueue, self.cmdReceiveQueue, self.cmdSendQueue,
-                             self.host, self.port)
-        self.server.start()
+    def createChannels(self):
+        channelOne = ChannelSPW(1)
+        self.channels.append(channelOne)
+        channelTwo = ChannelSPW(2)
+        self.channels.append(channelTwo)
 
-        # TODO only one channel send and receive or multiple depending on config file?
-        self.channel_tx = Channel(self.transmitChannel, self.firstDevice.deviceID)
-        self.channel_tx.openChannelToDevice(STAR_CHANNEL_DIRECTION.OUT, queued=False)
+    def Hello(self):
+        """
+        creates the hello packet for the client providing information, in detail hw device, serial number,
+        hw interface type and number if channels
+        """
+        # TODO let server identify connected device and get these information
+        hwDevice = "SpwBrickMk4"
+        serialNumber = "123-345-abc"
+        hwInterfaceType = "spacewire"
+        numChannels = "3"
 
-        self.channel_rx = Channel(self.receiveChannel, self.firstDevice.deviceID)
-        self.channel_rx.openChannelToDevice(STAR_CHANNEL_DIRECTION.IN, queued=False)
+        payload = len(str(hwDevice)).to_bytes(1, 'big')
+        payload += len(str(serialNumber)).to_bytes(1, 'big')
+        payload += len(str(hwInterfaceType)).to_bytes(1, 'big')
+        payload += len(str(numChannels)).to_bytes(1, 'big')
 
-        self.deviceConfig = DeviceConfig(self.firstDevice.deviceID)
-        self.configPort0 = ConfigPort(self.deviceConfig.deviceID, 0)
+        payload += hwDevice.encode("utf-8")
+        payload += serialNumber.encode("utf-8")
+        payload += hwInterfaceType.encode("utf-8")
+        payload += numChannels.encode("utf-8")
 
-        self.port1 = Port(self.deviceConfig.deviceID, 1)
-        self.link1 = LinkPort(self.firstDevice.deviceID, 1)
-
-        self.port2 = Port(self.deviceConfig.deviceID, 2)
-        self.link2 = LinkPort(self.firstDevice.deviceID, 2)
-
-        tr = threading.Thread(target=self.receiveThread, args=(), daemon=True)
-        tr.start()
-        ts = threading.Thread(target=self.sendThread, args=(), daemon=True)
-        ts.start()
-        #
-        self.main()
+        return payload
 
     def main(self):
-        """status and cmd message handler"""
-        while self.active:
-            try:
-                item = self.cmdReceiveQueue.get(block=False)
-            except queue.Empty:
-                pass
-            # TODO communication with core and socket here
-            # TODO react to incoming cmd messages here
-            # TODO sending of cmd messages here
-        print("spw main thread gone")
-
-    def sendThread(self):
-        """
-        send thread for sending data over spacewire, the data was received via socket and put in the
-        clientToServer queue
-        """
-        while self.active:
-            # check for data data queue
-            try:
-                item = self.sendQueue.get(block=False)
-                print(f"{item} from data in send thread SPW conn")
-                self.sendQueue.task_done()
-                self.send(item)
-            except queue.Empty:
-                pass
-            # check for data in cmd queue
-            try:
-                item = self.cmdSendQueue.get(block=False)
-                print(f"{item} from cmd in send thread SPW conn")
-                self.sendQueue.task_done()
-                self.send(item)
-            except queue.Empty:
-                pass
-        print("send thread spw gone, tx channel spw closed")
-        self.channel_tx.close()
-
-    def send(self, item):
-        """..."""
-        sendItem = []
-
-        for i in item:
-            sendItem.append(i)
-
-        dataChunk = DataChunk(sendItem, isStart=True, eop=STAR_EOP_TYPE.STAR_EOP_TYPE_EOP)
-        dataPacket = Packet([dataChunk], self.destinationAddress, STAR_EOP_TYPE.STAR_EOP_TYPE_EOP)
-
-        sendTransferOperation = TransmitOperation([dataPacket])
-
-        self.channel_tx.submitTransferOperation(sendTransferOperation)
-
-        # Wait indefinitely for transfer to complete.
-        status = sendTransferOperation.waitOnTransferOperationCompletion(-1)
-
-        # Check that packet was sent.
-        if status != STAR_TRANSFER_STATUS.STAR_TRANSFER_STATUS_COMPLETE:
-            print("Packet was not sent successfully.")
-        print(f"{sendItem} sent on channel {self.transmitChannel}")
-
-    def receiveThread(self):
-        """
-        receive thread for receiving  data over spacewire, received data is stored in the serverToClient queue
-        so that it can be transferred to server via socket by the socket client
-        """
-        while self.active:
-            message = self.receive()
-            print(f"{message} in receive thread spw")
-            # TODO decide where to put packet data vs cmd
-            # match message[0]:
-            # case data:
-            # case cmd:
-            # try:
-            # self.cmdReceiveQueue.put(message, block=False)
-            # catch queue.Full:
-            # print("cmd receive queue full")
-
-            # create timestamp of reception
-
-            try:
-                self.receiveQueue.put(message, block=False)
-            except queue.Full:
-                print("data receive queue spw full")
-        print("receive thread spw gone, rx channel spw closed")
-        self.channel_rx.close()
-
-    def receive(self):
-        """receives data over spacewire connection in packet form"""
-        # Create receive transfer operation.
-        receiveTransferOperation = ReceiveOperation(1, receivePackets=True)
-
-        # Start receiving packet.
-        self.channel_rx.submitTransferOperation(receiveTransferOperation)
-
-        # Wait for packet to be received. timeout in mS to wait for (-1) is wait indefinitely
-        status = receiveTransferOperation.waitOnTransferOperationCompletion(timeout=-1)
-
-        # Check that valid packet was received.
-        if status == STAR_TRANSFER_STATUS.STAR_TRANSFER_STATUS_COMPLETE:
-            # Get received packet.
-            packet = receiveTransferOperation.getTransferItem(0)
-
-            # Get packet data.
-            data = packet.getPacketData()
-
-            # Print received packet.
-            print(f"{data} received on channel {self.receiveChannel}")
-
-            self.receivedPacketsNumber += 1
-        else:
-            print("Did not receive valid packet.")
-            data = None
-
-        return data
+        pass
 
 
 if __name__ == "__main__":
-    d = {"host": "127.0.0.1",
-         "port": 5555}
-    _ = Spacewire(d)
+    # self.firstDevice = getFirstDevice()
+    # self.port = Port(self.firstDevice.deviceID, self.channelNumber)
+    # getPortType() -> data port -> add this port as available channel, channel numbers as list
+    # device.getXXX for other information hopefully (helper functions in example)
+    # busType = device.getBusType()
+
+    # channels = device.getChannels()
+    # if channels:
+    #    for channel in channels:
+    #        print(channel.channelNumber)
+    # else:
+    #    print("None")
+
+    # Ignore the configuration channel.
+    # for channel in channels:
+    #     if channel.channelNumber == 0:
+    #         channels.remove(channel)
+    pass
