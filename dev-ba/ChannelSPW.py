@@ -1,6 +1,8 @@
 import queue
 import threading
 
+from enums import Ptype
+
 from util import getFirstDevice
 from STAR_system.data_chunk import DataChunk
 from STAR_system.link_port import LinkPort
@@ -41,6 +43,7 @@ class ChannelSPW:
         self.channel_rx.openChannelToDevice(STAR_CHANNEL_DIRECTION.IN, queued=False)
         self.channel_tx.openChannelToDevice(STAR_CHANNEL_DIRECTION.OUT, queued=False)
 
+        print(f"starting threads for channel {self.channelNumber}")
         self.receiveThread = threading.Thread(target=self.receiveMessage, args=())
         self.receiveThread.start()
         self.sendThread = threading.Thread(target=self.sendMessage, args=())
@@ -68,12 +71,11 @@ class ChannelSPW:
     def send(self, item):
         """..."""
         sendItem = []
-
         for i in item:
             sendItem.append(i)
 
         dataChunk = DataChunk(sendItem, isStart=True, eop=STAR_EOP_TYPE.STAR_EOP_TYPE_EOP)
-        dataPacket = Packet([dataChunk], self.destinationAddress, STAR_EOP_TYPE.STAR_EOP_TYPE_EOP)
+        dataPacket = Packet([dataChunk], None, STAR_EOP_TYPE.STAR_EOP_TYPE_EOP)
 
         sendTransferOperation = TransmitOperation([dataPacket])
 
@@ -85,7 +87,7 @@ class ChannelSPW:
         # Check that packet was sent.
         if status != STAR_TRANSFER_STATUS.STAR_TRANSFER_STATUS_COMPLETE:
             print("Packet was not sent successfully.")
-        print(f"{sendItem} sent on channel {self.transmitChannel}")
+        print(f"{sendItem} sent on channel {self.channel_tx}")
 
     def receiveMessage(self):
         """
@@ -94,10 +96,10 @@ class ChannelSPW:
         """
         while self.active:
             message = self.receive()
+            channelNumberBytes = self.channelNumber.to_bytes(1, 'big')
             print(f"{message} in receive thread spw")
-            # TODO add channel of reception
             try:
-                self.receiveQueue.put(message, block=False)
+                self.receiveQueue.put([Ptype.DATA.value, channelNumberBytes + bytes(message)], block=False)
             except queue.Full:
                 print("data receive queue spw full")
         print("receive thread spw gone, rx channel spw closed")
@@ -123,8 +125,7 @@ class ChannelSPW:
             data = packet.getPacketData()
 
             # Print received packet.
-            print(f"{data} received on channel {self.receiveChannel}")
-
+            print(f"{data} received on channel {self.channel_rx}")
         else:
             print("Did not receive valid packet.")
             data = None

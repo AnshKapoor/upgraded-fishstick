@@ -16,6 +16,9 @@ if __name__ == "__main__":
     print(dt)
     print(timeNs)
 
+    print(int.from_bytes(b'\x00\x01', "big"))
+    print(int.from_bytes(b'\xc0\x1d\xc0\xff\xee', "big"))
+
 
 def test():
     schema = strictyaml.Map({

@@ -71,6 +71,10 @@ if __name__ == "__main__":
     c = Core()
 
     while True:
-        n = input("message: ")
+        n = input()
         h = bytes(n, "utf-8")
+        if n == "exit":
+            break
+        if n == "test":
+            h = b'\xc0\x1d\xc0\xff\xee'
         c.dataHandler.toSendQueue(0, Ptype.DATA.value, h)

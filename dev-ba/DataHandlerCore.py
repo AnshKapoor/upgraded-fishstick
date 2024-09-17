@@ -13,7 +13,7 @@ class DataHandler(threading.Thread):
     def updateClients(self, client):
         self.clients.append(client)
         for c in self.clients:
-            print(f"\nDevice: {c.hwDevice} {c.serialNumber} on {c.hwInterfaceType} with {c.numChannels} channels "
+            print(f"\nDevice: {c.hwDevice} on interface type {c.hwInterfaceType} with {c.numChannels} channels "
                   f"as ID:{c.ID}")
 
     def sendThread(self):

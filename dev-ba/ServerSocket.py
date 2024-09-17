@@ -19,9 +19,6 @@ class Server(threading.Thread):
         self.host = host
         self.port = port
 
-        self.receiveQueue = queue.Queue()
-        self.sendQueue = queue.Queue()
-
         self.cmdReceiveQueue = queue.Queue()
         self.cmdSendQueue = queue.Queue()
 
@@ -50,7 +47,7 @@ class Server(threading.Thread):
     def sortPackets(self, payloadType, payload):
         match payloadType:
             case Ptype.DATA.value:
-                print(f"{payloadType=} {payload=}")
+                self.spw.channels[0].sendQueue.put(payload)
             case _:
                 print("invalid Payload type")
 
@@ -187,7 +184,7 @@ class Server(threading.Thread):
 
                 self.clientSocket.send(msg)
             except queue.Empty:
-                continue
+                pass
             except ConnectionResetError:
                 break
 
@@ -196,7 +193,8 @@ class Server(threading.Thread):
                 try:
                     # Socket server sending thread looking for packets received over spw on every available channel
                     payload = ch.receiveQueue.get(block=False)
-                    self.sendQueue.task_done()
+                    print(f"server socket send {payload}")
+                    ch.receiveQueue.task_done()
                     # Sync pattern (5 bytes chars)
                     header = b'\xc0\x1d\xc0\xff\xee'
                     # protocol version (1 Byte uint -> 0-255)
@@ -215,7 +213,7 @@ class Server(threading.Thread):
 
                     self.clientSocket.send(msg)
                 except queue.Empty:
-                    continue
+                    pass
                 except ConnectionResetError:
                     break
 
