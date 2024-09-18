@@ -12,6 +12,9 @@ class DataHandler(threading.Thread):
 
     def updateClients(self, client):
         self.clients.append(client)
+        self.showClients()
+
+    def showClients(self):
         for c in self.clients:
             print(f"\nDevice: {c.hwDevice} on interface type {c.hwInterfaceType} with {c.numChannels} channels "
                   f"as ID:{c.ID}")
