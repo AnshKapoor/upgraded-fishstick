@@ -67,6 +67,7 @@ class ChannelSPW:
                 self.send(item)
             except queue.Empty:
                 pass
+        print(f"send thread spw gone {self.channelNumber}")
 
     def send(self, item):
         """..."""
@@ -87,7 +88,7 @@ class ChannelSPW:
         # Check that packet was sent.
         if status != STAR_TRANSFER_STATUS.STAR_TRANSFER_STATUS_COMPLETE:
             print("Packet was not sent successfully.")
-        print(f"{sendItem} sent on channel {self.channel_tx}")
+        print(f"{sendItem} sent on channel {self.channelNumber}")
 
     def receiveMessage(self):
         """
@@ -97,12 +98,13 @@ class ChannelSPW:
         while self.active:
             message = self.receive()
             channelNumberBytes = self.channelNumber.to_bytes(1, 'big')
-            print(f"{message} in receive thread spw")
+            if not message:
+                continue
             try:
                 self.receiveQueue.put([Ptype.DATA.value, channelNumberBytes + bytes(message)], block=False)
             except queue.Full:
                 print("data receive queue spw full")
-        print("receive thread spw gone, rx channel spw closed")
+        print(f"receive thread spw gone {self.channelNumber}")
         self.channel_rx.close()
 
     def receive(self):
@@ -114,7 +116,7 @@ class ChannelSPW:
         self.channel_rx.submitTransferOperation(receiveTransferOperation)
 
         # Wait for packet to be received. timeout in mS to wait for (-1) is wait indefinitely
-        status = receiveTransferOperation.waitOnTransferOperationCompletion(timeout=-1)
+        status = receiveTransferOperation.waitOnTransferOperationCompletion(timeout=100)
 
         # Check that valid packet was received.
         if status == STAR_TRANSFER_STATUS.STAR_TRANSFER_STATUS_COMPLETE:
@@ -125,9 +127,12 @@ class ChannelSPW:
             data = packet.getPacketData()
 
             # Print received packet.
-            print(f"{data} received on channel {self.channel_rx}")
+            print(f"{data} received on channel {self.channelNumber}")
         else:
-            print("Did not receive valid packet.")
+            # print("Did not receive valid packet.")
             data = None
 
         return data
+
+    def close(self):
+        self.active = False

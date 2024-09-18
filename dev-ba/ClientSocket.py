@@ -86,7 +86,7 @@ class Client(threading.Thread):
         self.active = False
         print("client main thread gone")
 
-    def endConnection(self):
+    def close(self):
         self.active = False
         time.sleep(0.1)
         self.client.close()

@@ -39,6 +39,10 @@ class Spacewire:
 
         # device.getXXX for other information hopefully (helper functions in example)
 
+    def close(self):
+        for ch in self.channels:
+            ch.close()
+
     def createChannels(self):
         for c in self.dataChannelList:
             channel = ChannelSPW(c)

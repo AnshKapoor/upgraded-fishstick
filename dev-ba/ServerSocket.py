@@ -47,7 +47,12 @@ class Server(threading.Thread):
     def sortPackets(self, payloadType, payload):
         match payloadType:
             case Ptype.DATA.value:
-                self.spw.channels[0].sendQueue.put(payload)
+                sendChannel = payload[0]
+                payload = payload[1:]
+                # -1 for 0 being the config port and not listed in the spw.channels, so channel 1 is at [0]
+                self.spw.channels[sendChannel - 1].sendQueue.put(payload)
+            case Ptype.BYE.value:
+                self.close()
             case _:
                 print("invalid Payload type")
 
@@ -66,12 +71,11 @@ class Server(threading.Thread):
         self.receiveThread = threading.Thread(target=self.receiveMessage, args=()).start()
         self.sendThread = threading.Thread(target=self.sendMessage, args=()).start()
 
-    def closeConnectionToClient(self):
-        """..."""
+    def close(self):
+        """shuts down the socket server and the spw connection with all its threads"""
         self.active = False
         self.clientSocket.close()
-        if self.reopen:
-            self.searchForConnections()
+        self.spw.close()
 
     def receiveMessage(self):
         """receive thread for receiving socket messages from client(core class)"""
