@@ -53,12 +53,23 @@ class Server(threading.Thread):
                 self.spw.channels[sendChannel - 1].sendQueue.put(payload)
             case Ptype.BYE.value:
                 self.close()
+            case Ptype.CONFIG.value:
+                self.config(payload[1:])
             case _:
                 print("invalid Payload type")
 
+    def config(self, payload):
+        """sets transmission rate in MBit/s to given channel"""
+        channelNumber = payload[0]
+        bitRateMbitSec = payload[1]
+        self.spw.channels[channelNumber].setTransmissionRate(bitRateMbitSec)
+
     def searchForConnections(self):
-        """..."""
-        print("searching for new connection")
+        """
+        accepts incoming tcp socket connection, creates hello packet, puts it to send queue and starts tcp socket
+        receive and send threads
+        """
+        print("searching for connection")
         self.clientSocket, self.addr = self.server.accept()
         print(f"Connection established with {self.addr}")
         print("-------------------------------------------------------------")
