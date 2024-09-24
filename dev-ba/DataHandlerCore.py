@@ -12,12 +12,14 @@ class DataHandler(threading.Thread):
 
     def updateClients(self, client):
         self.clients.append(client)
+        # sort clients by ID, so sequence of connection does not mess up sequence in client list
+        self.clients.sort(key=lambda v: v.ID)
         self.showClients()
 
     def showClients(self):
         for c in self.clients:
             print(f"\nDevice: {c.hwDevice} on interface type {c.hwInterfaceType} with {c.numChannels} channels "
-                  f"as ID:{c.ID}")
+                  f"as ID:{c.ID} on {c.port}")
 
     def sendThread(self):
         # TODO sort packets to data or cmd queue
