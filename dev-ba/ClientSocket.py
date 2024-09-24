@@ -7,7 +7,7 @@ from enums import Ptype
 
 
 class Client(threading.Thread):
-    """socket type client, for now matching requirements for spwbrickmk4"""
+    """socket type client"""
     def __init__(self, dataHandler, receiveQueue, sendQueue, cmdReceiveQueue, cmdSendQueue, host, port, ID):
         super(Client, self).__init__()
         self.dataHandler = dataHandler
@@ -30,9 +30,11 @@ class Client(threading.Thread):
         self.hwInterfaceType = None
         self.numChannels = None
 
+        self.timeoutSek = 0.000000001
+
     def run(self):
         self.client.connect((self.host, self.port))
-        self.client.settimeout(0.001)
+        self.client.settimeout(self.timeoutSek)
 
         self.receiveThread = threading.Thread(target=self.receiveMessage, args=())
         self.receiveThread.start()
@@ -46,11 +48,12 @@ class Client(threading.Thread):
         """..."""
         while self.active:
             try:
-                item = self.cmdReceiveQueue.get(block=False)
+                item = self.cmdReceiveQueue.get(block=True, timeout=self.timeoutSek)
                 match item[0]:
                     # hello packet
                     case Ptype.HELLO.value:
                         payload = item[1]
+                        # get length
                         l = payload[0:4]
                         # cut off length bytes
                         payload = payload[4:]
@@ -101,7 +104,7 @@ class Client(threading.Thread):
 
         while self.active:
             try:
-                receivedData = self.client.recv(64)
+                receivedData = self.client.recv(4096)
                 if not receivedData:
                     continue
                 dataBuffer += receivedData
@@ -111,7 +114,7 @@ class Client(threading.Thread):
             except ConnectionResetError:
                 break
 
-            print("dataBuffer: " + str(dataBuffer))
+            #print("dataBuffer: " + str(dataBuffer))
             print("dataBuffer length: " + str(dataBufferLength))
 
             if newPacket:
@@ -137,11 +140,11 @@ class Client(threading.Thread):
 
                             if dataBufferLength >= payloadLength:
                                 payload = dataBuffer[:payloadLength]
-                                print(f"Full payload received on {self.ID}: {payload}")
+                                print(f"Full payload received, first")
                                 self.sortPackets(payloadType, payload)
                                 dataBuffer = dataBuffer[payloadLength:]
                                 dataBufferLength = len(dataBuffer)
-                                print("dataBuffer after payload cut: " + str(dataBuffer))
+                                #print("dataBuffer after payload cut: " + str(dataBuffer))
                                 print("-----------------------")
                                 newPacket = True
                             else:
@@ -160,12 +163,12 @@ class Client(threading.Thread):
                 if dataBufferLength >= payloadLength:
                     payload = dataBuffer[:payloadLength]
 
-                    print("Full payload received: " + str(payload))
+                    print("Full payload received, second")
                     self.sortPackets(payloadType, payload)
 
                     dataBuffer = dataBuffer[payloadLength:]
                     dataBufferLength = len(dataBuffer)
-                    print("dataBuffer after payload cut: " + str(dataBuffer))
+                    #print("dataBuffer after payload cut: " + str(dataBuffer))
 
                     newPacket = True
 
@@ -182,6 +185,9 @@ class Client(threading.Thread):
                 self.cmdReceiveQueue.put([payloadType, payload])
             case Ptype.DATA.value:
                 self.receiveQueue.put(payload)
+                self.time2 = time.time_ns()
+                timeDiff = self.time2-self.time1
+                print(timeDiff / 1000000000)
             case _:
                 print("invalid Payload type")
 
@@ -189,10 +195,11 @@ class Client(threading.Thread):
         """send thread for socket communication, sending from client to server"""
         while self.active:
             try:
-                payload = self.sendQueue.get(block=False)
+                payload = self.sendQueue.get(block=True, timeout=self.timeoutSek)
+                self.time1 = time.time_ns()
                 self.sendQueue.task_done()
-                print(f"{payload=}")
-                print(len(payload[1]))
+                #print(f"{payload=}")
+                print(f"length in send socket client: {len(payload[1])}")
                 # Sync pattern (5 bytes chars)
                 header = b'\xc0\x1d\xc0\xff\xee'
                 # protocol version (1 Byte uint -> 0-255)
@@ -203,7 +210,6 @@ class Client(threading.Thread):
                 header += payload[0].to_bytes(1, 'big')
                 # reserved (2 byte)
                 header += b'\x00\x00'
-                print(header)
 
                 if not isinstance(payload[1], bytes):
                     msg = header + bytes(str(payload[1]), "utf-8")
