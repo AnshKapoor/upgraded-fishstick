@@ -7,11 +7,9 @@ from util import getFirstDevice
 from STAR_system.data_chunk import DataChunk
 from STAR_system.link_port import LinkPort
 from STAR_system.packet import Packet
-from STAR_system.device_config import DeviceConfig
 from STAR_system.STAR_enums import STAR_EOP_TYPE, STAR_CHANNEL_DIRECTION, STAR_TRANSFER_STATUS
 from STAR_system.channel import Channel
 from STAR_system.transfer_operations import TransmitOperation, ReceiveOperation
-from STAR_system.config_port import ConfigPort
 from STAR_system.port import Port
 
 
@@ -31,13 +29,11 @@ class ChannelSPW:
         self.receiveThread = None
         self.sendThread = None
 
-        self.main()
-
         # TODO close channel and Link.stopLink()
         self.port = Port(self.firstDevice.deviceID, self.channelNumber)
-        # getPortType()
         self.link = LinkPort(self.firstDevice.deviceID, self.channelNumber)
-        # get/set transmission speed
+
+        self.main()
 
     def main(self):
         self.channel_rx.openChannelToDevice(STAR_CHANNEL_DIRECTION.IN, queued=False)
@@ -49,9 +45,9 @@ class ChannelSPW:
         self.sendThread = threading.Thread(target=self.sendMessage, args=())
         self.sendThread.start()
 
-    def setTransmissionRate(self):
-        # receiveChannelLink.setTransmitSignallingRate(200)
-        pass
+    def setTransmissionRate(self, bitRateMbitSec):
+        # set transmission speed
+        self.link.setTransmitSignallingRate(bitRateMbitSec)
 
     def sendMessage(self):
         """
@@ -83,6 +79,7 @@ class ChannelSPW:
         self.channel_tx.submitTransferOperation(sendTransferOperation)
 
         # Wait indefinitely for transfer to complete.
+        # TODO timeout
         status = sendTransferOperation.waitOnTransferOperationCompletion(-1)
 
         # Check that packet was sent.
