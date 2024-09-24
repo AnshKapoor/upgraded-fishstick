@@ -24,19 +24,22 @@ class Core:
 
     def createClients(self):
         """..."""
-
         for ID, conn in enumerate(self.parsedConfig["connections"]["spacewire"]):
-            match conn:
-                case "brickmk4":
-                    host = self.parsedConfig["connections"]["spacewire"]["brickmk4"]["host"]
-                    port = self.parsedConfig["connections"]["spacewire"]["brickmk4"]["port"]
+            connType = self.parsedConfig["connections"]["spacewire"][conn]["connectionType"]
+            match connType:
+                case "Spacewire":
+                    host = self.parsedConfig["connections"]["spacewire"][conn]["host"]
+                    port = self.parsedConfig["connections"]["spacewire"][conn]["port"]
                     receiveQueue = queue.Queue()
                     sendQueue = queue.Queue()
+
+                    print(host, port, ID)
 
                     client = Client(self.dataHandler, receiveQueue, sendQueue, self.cmdReceiveQueue, self.cmdSendQueue,
                                     host, port, ID)
                     client.start()
                     self.clients.append(client)
+                    print(self.clients[ID].port)
                 case _:
                     print(f"{conn} not supported yet.")
 
@@ -50,19 +53,8 @@ class Core:
                 "spacewire": strictyaml.MapCombined({}, strictyaml.Str(), strictyaml.Map({
                     "host": strictyaml.Str(),
                     "port": strictyaml.Int(),
-                })),
-                "SPI": strictyaml.Map({
-                    "port": strictyaml.Str(),
-                    "baudrate": strictyaml.Int(),
-                    "timeout": strictyaml.Int()
-                }),
-                "powersupply": strictyaml.Map({
-                    "channel": strictyaml.Int(),
-                    "polling": strictyaml.Bool(),
-                    "polling_intervall": strictyaml.Int(),
-                    "port": strictyaml.Str(),
-                    "baudrate": strictyaml.Int()
-                })
+                    "connectionType": strictyaml.Str()
+                }))
             })
         })
         self.parsedConfig = strictyaml.load(path.Path(inputFile).read_text(), schema).data
@@ -76,18 +68,32 @@ if __name__ == "__main__":
     c = Core()
 
     while True:
-        n = input()
-        h = bytes(n, "utf-8")
-        if n == "exit":
-            break
-        if n == "t1":
-            h = b'\x01\xc0\x1d\xc0\xff\xee'
-            c.dataHandler.toSendQueue(0, Ptype.DATA.value, h)
-        elif n == "t2":
-            h = b'\x02\xc0\x1d\xc0\xff\xee'
-            c.dataHandler.toSendQueue(0, Ptype.DATA.value, h)
-        elif n == "bye":
-            c.dataHandler.toSendQueue(0, Ptype.BYE.value, b'\x00')
-            time.sleep(1)
-            c.close()
-            break
+        time.sleep(0.1)
+
+        ID = input("choose ID")
+        channel = input("choose channel")
+        size = input("size payload")
+        payload = channel.encode('utf-8') + bytearray(int(size))
+        c.dataHandler.toSendQueue(int(ID), Ptype.DATA.value, payload)
+
+        # id = input("choose ID")
+        # c.dataHandler.toSendQueue(int(id), Ptype.BYE.value, b'\x00')
+
+        # n = input()
+        # if n == "exit":
+        #     break
+        # if n == "t1":
+        #     h = b'\x01\xaa\xbb\xcc\xdd\xee'
+        #     c.dataHandler.toSendQueue(0, Ptype.DATA.value, h)
+        # elif n == "t2":
+        #     h = b'\x02\xaa\xbb\xcc\xdd\xee'
+        #     c.dataHandler.toSendQueue(0, Ptype.DATA.value, h)
+        # elif n == "bye":
+        #     c.dataHandler.toSendQueue(0, Ptype.BYE.value, b'\x00')
+        #     time.sleep(1)
+        #     c.close()
+        #     break
+        # elif n == "big":
+        #     _ = b'\x99'
+        #     payload = bytearray(100)
+        #     c.dataHandler.toSendQueue(0, Ptype.DATA.value, _ + payload)
