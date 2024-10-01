@@ -13,8 +13,7 @@ class Server:
     :param int port: port of host system
     """
 
-    def __init__(self, host='127.0.0.1', port=4444):
-        # super(Server, self).__init__()
+    def __init__(self, host='127.0.0.1', port=3333):
         self.host = host
         self.port = port
 
@@ -46,7 +45,7 @@ class Server:
         creates the hello packet for the client providing information, in detail hw device, serial number,
         hw interface type and number if channels
         """
-        deviceName = "brickmk4Dummy0"
+        deviceName = "Peter0"
         serialNumber = "123456789"
         busType = "Spacewire"
         dataChannelList = [1, 2]
@@ -70,6 +69,7 @@ class Server:
         print("Hello packet sent")
 
     def sortPackets(self, payloadType, payload):
+        print(time.time_ns())
         match payloadType:
             case Ptype.DATA.value:
                 # payload = payload[1:]
@@ -120,7 +120,6 @@ class Server:
             except ConnectionResetError:
                 break
 
-            #print("dataBuffer: " + str(dataBuffer))
             print("dataBuffer length: " + str(dataBufferLength))
 
             if newPacket:
@@ -151,7 +150,6 @@ class Server:
                                 self.sortPackets(payloadType, payload)
                                 dataBuffer = dataBuffer[payloadLength:]
                                 dataBufferLength = len(dataBuffer)
-                                #print("dataBuffer after payload cut: " + str(dataBuffer))
                                 print("-----------------------")
 
                                 newPacket = True

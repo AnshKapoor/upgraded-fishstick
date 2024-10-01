@@ -1,20 +1,29 @@
+import queue
 import threading
+from enums import Ptype
 
 
 class DataHandler(threading.Thread):
     def __init__(self):
         super(DataHandler, self).__init__()
         self.clients = []
+        self.clientQueue = queue.Queue()
+        self.timeoutSek = 0.000000001
+        self.lock = threading.Lock()
 
     def run(self):
         # TODO start threads for queues
         pass
 
-    def updateClients(self, client):
-        self.clients.append(client)
-        # sort clients by ID, so sequence of connection does not mess up sequence in client list
-        self.clients.sort(key=lambda v: v.ID)
-        self.showClients()
+    def updateClients(self, clients):
+        with self.lock:
+            self.clients = clients
+            # only show clients, when all are available
+            for c in self.clients:
+                if c.hwDevice is None:
+                    print("not all hello packets have been processed...")
+                    return
+            self.showClients()
 
     def showClients(self):
         for c in self.clients:
@@ -32,4 +41,8 @@ class DataHandler(threading.Thread):
 
     def toSendQueue(self, ID, ptype, payload):
         # Function to call from i.e. extensions to send messages
-        self.clients[ID].sendQueue.put([ptype, payload])
+        match ptype:
+            case Ptype.DATA.value:
+                self.clients[ID].sendQueue.put([ptype, payload])
+            case _:
+                self.clients[ID].cmdSendQueue.put([ptype, payload])

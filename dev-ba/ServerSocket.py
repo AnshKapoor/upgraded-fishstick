@@ -8,19 +8,20 @@ from enums import Ptype
 from SpacewireConnection import Spacewire
 
 
-class Server(threading.Thread):
+class Server:
     """
     TCP type Socket server
     :param str host: IPV4 address of host system
     :param int port: port of host system
     """
-    def __init__(self, host='127.0.0.1', port=5555):
-        super(Server, self).__init__()
+    def __init__(self, host='127.0.0.1', port=4444):
         self.host = host
         self.port = port
 
         self.cmdReceiveQueue = queue.Queue()
         self.cmdSendQueue = queue.Queue()
+
+        self.timeoutSek = 0.000000001
 
         self.reopen = True
         self.active = True
@@ -30,6 +31,7 @@ class Server(threading.Thread):
         self.addr = ""
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.spw = Spacewire()
+        self.run()
 
     def run(self):
         self.server.bind((self.host, self.port))
@@ -77,7 +79,7 @@ class Server(threading.Thread):
 
         self.active = True
 
-        self.clientSocket.settimeout(0.001)
+        self.clientSocket.settimeout(self.timeoutSek)
 
         self.receiveThread = threading.Thread(target=self.receiveMessage, args=()).start()
         self.sendThread = threading.Thread(target=self.sendMessage, args=()).start()
@@ -98,7 +100,7 @@ class Server(threading.Thread):
 
         while self.active:
             try:
-                receivedData = self.clientSocket.recv(128)
+                receivedData = self.clientSocket.recv(4096)
                 if not receivedData:
                     continue
                 dataBuffer += receivedData
@@ -116,12 +118,13 @@ class Server(threading.Thread):
                     while True:
                         # Check for sync pattern
                         if dataBuffer[startOfPacket:startOfPacket + 5] == b'\xc0\x1d\xc0\xff\xee':
-                            print("Packet Sync pattern found!")
                             payloadLength = int.from_bytes(dataBuffer[startOfPacket + 6:startOfPacket + 9], 'big')
-                            print(f"{payloadLength=}")
                             protocolVersion = int.from_bytes(dataBuffer[startOfPacket + 5:startOfPacket + 6], 'big')
-                            print(f"{protocolVersion=}")
                             payloadType = int.from_bytes(dataBuffer[startOfPacket + 9:startOfPacket + 10], 'big')
+
+                            print("Packet Sync pattern found!")
+                            print(f"{payloadLength=}")
+                            print(f"{protocolVersion=}")
                             print(f"payloadType={Ptype(payloadType).name}")
 
                             if dataBufferLength == startOfPacket + HEADERSIZE:
@@ -179,7 +182,7 @@ class Server(threading.Thread):
             # cmd queue
             try:
                 # Socket server sending thread looking for packets received over spw on every available channel
-                payload = self.cmdSendQueue.get(block=False)
+                payload = self.cmdSendQueue.get(block=True, timeout=self.timeoutSek)
                 self.cmdSendQueue.task_done()
                 # Sync pattern (5 bytes chars)
                 header = b'\xc0\x1d\xc0\xff\xee'
@@ -238,4 +241,3 @@ class Server(threading.Thread):
 
 if __name__ == "__main__":
     server = Server()
-    server.start()

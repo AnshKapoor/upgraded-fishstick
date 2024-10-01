@@ -7,6 +7,5 @@ class Ptype(Enum):
     CONFIG = 10
     DATA = 20
     STATUS = 30
-    BUSY = 40
-    HEARTBEAT = 50
-    BYE = 60
+    RESET = 40
+    BYE = 50

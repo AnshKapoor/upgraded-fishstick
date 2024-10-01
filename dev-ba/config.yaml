@@ -1,23 +1,5 @@
 connections:
   spacewire:
-    brickmk4:
+    brickmk4Dummy0:
       host: '127.0.0.1'
-      port: 5555
-    gresb:
-      host: '127.0.0.1'
-      port: 5556
-    shimafuji:
-      host: '127.0.0.1'
-      port: 5557
-
-  SPI:
-    port: 'COM4'
-    baudrate: 19200
-    timeout: 500
-
-  powersupply:
-    channel: 1
-    polling: False
-    polling_intervall: 500
-    port: 'COM4'
-    baudrate: 19200
+      port: 3333

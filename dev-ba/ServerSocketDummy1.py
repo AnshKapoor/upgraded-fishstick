@@ -13,8 +13,7 @@ class Server:
     :param int port: port of host system
     """
 
-    def __init__(self, host='127.0.0.1', port=5555):
-        # super(Server, self).__init__()
+    def __init__(self, host='127.0.0.1', port=4444):
         self.host = host
         self.port = port
 
@@ -46,10 +45,10 @@ class Server:
         creates the hello packet for the client providing information, in detail hw device, serial number,
         hw interface type and number if channels
         """
-        deviceName = "brickmk4Dummy1"
-        serialNumber = "123456789"
+        deviceName = "Dieter1"
+        serialNumber = "987654321"
         busType = "Spacewire"
-        dataChannelList = [1, 2]
+        dataChannelList = [1, 2, 3, 4]
 
         payload = len(str(deviceName)).to_bytes(1, 'big')
         payload += len(str(serialNumber)).to_bytes(1, 'big')
@@ -70,6 +69,7 @@ class Server:
         print("Hello packet sent")
 
     def sortPackets(self, payloadType, payload):
+        print(payloadType, payload)
         match payloadType:
             case Ptype.DATA.value:
                 # payload = payload[1:]
