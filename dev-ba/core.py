@@ -22,9 +22,9 @@ class Core:
         self.loadConfig()
         self.dataHandler.start()
         self.createClients()
-        threading.Thread(target=self.cmdPackets, args=()).start()
+        threading.Thread(target=self.cmdManagingThread, args=()).start()
 
-    def cmdPackets(self):
+    def cmdManagingThread(self):
         while True:
             for cl in self.clients:
                 try:
@@ -57,10 +57,6 @@ class Core:
                             print("config packet received")
                         case Ptype.STATUS.value:
                             print("status packet received")
-                        case Ptype.BUSY.value:
-                            print("busy packet received")
-                        case Ptype.HEARTBEAT.value:
-                            print("heartbeat received")
                         case Ptype.BYE.value:
                             print("bye")
                         case _:
@@ -132,14 +128,3 @@ if __name__ == "__main__":
         #     _ = b'\x99'
         #     payload = bytearray(100)
         #     c.dataHandler.toSendQueue(0, Ptype.DATA.value, _ + payload)
-
-
-
-    # brickmk4Dummy1:
-    #   host: '127.0.0.1'
-    #   port: 4444
-    #   connectionType: 'Spacewire'
-    # brickmk4Dummy2:
-    #   host: '127.0.0.1'
-    #   port: 5555
-    #   connectionType: 'Spacewire'
