@@ -42,15 +42,6 @@ class Client(threading.Thread):
         self.sendThread = threading.Thread(target=self.sendMessage, args=())
         self.sendThread.start()
 
-        #self.main()
-
-    def main(self):
-        """..."""
-        while self.active:
-            pass
-        self.active = False
-        print("client main thread gone")
-
     def close(self):
         self.active = False
         time.sleep(0.1)
@@ -187,7 +178,7 @@ class Client(threading.Thread):
                 self.client.send(msg)
                 print(f"sent {payload[0]}")
             except queue.Empty:
-                continue
+                pass
             except ConnectionResetError:
                 break
 

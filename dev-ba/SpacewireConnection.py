@@ -37,7 +37,6 @@ class Spacewire:
         self.deviceName = firstDevice.getDeviceName()
         self.serialNumber = firstDevice.getSerialNumber()
 
-
     def close(self):
         for ch in self.channels:
             ch.close()

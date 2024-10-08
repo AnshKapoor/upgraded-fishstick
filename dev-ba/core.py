@@ -25,6 +25,7 @@ class Core:
         threading.Thread(target=self.cmdManagingThread, args=()).start()
 
     def cmdManagingThread(self):
+        """main thread of the core for managing all incoming cmd packets"""
         while True:
             for cl in self.clients:
                 try:

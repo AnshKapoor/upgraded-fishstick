@@ -57,6 +57,7 @@ class ChannelSPW:
         while self.active:
             # check for data data queue
             try:
+                # TODO timeout
                 item = self.sendQueue.get(block=False)
                 print(f"{item} from data in send thread SPW conn")
                 self.sendQueue.task_done()
@@ -98,6 +99,7 @@ class ChannelSPW:
             if not message:
                 continue
             try:
+                # TODO block
                 self.receiveQueue.put([Ptype.DATA.value, channelNumberBytes + bytes(message)], block=False)
             except queue.Full:
                 print("data receive queue spw full")
@@ -112,6 +114,7 @@ class ChannelSPW:
         # Start receiving packet.
         self.channel_rx.submitTransferOperation(receiveTransferOperation)
 
+        # TODO right timeout
         # Wait for packet to be received. timeout in mS to wait for (-1) is wait indefinitely
         status = receiveTransferOperation.waitOnTransferOperationCompletion(timeout=100)
 

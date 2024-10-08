@@ -30,7 +30,7 @@ class Server:
         self.sendThread = None
         self.addr = ""
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.spw = Spacewire()
+        self.spw = None
         self.run()
 
     def run(self):
@@ -40,13 +40,32 @@ class Server:
         print(f"Server listening on {self.host}:{self.port}")
         self.searchForConnections()
 
+    def searchForConnections(self):
+        """
+        accepts incoming tcp socket connection, creates hello packet, puts it to send queue and starts tcp socket
+        receive and send threads
+        """
+        print("searching for connection")
+        self.clientSocket, self.addr = self.server.accept()
+        print(f"Connection established with {self.addr}")
+        print("-------------------------------------------------------------")
+        self.clientSocket.settimeout(self.timeoutSek)
+
+        self.receiveThread = threading.Thread(target=self.receiveMessage, args=()).start()
+        self.sendThread = threading.Thread(target=self.sendMessage, args=()).start()
+
+        self.createHelloPacket()
+
     def createHelloPacket(self):
+        """..."""
+        self.spw = Spacewire()
         payloadHello = self.spw.Hello()
         # type of packet, payload
         self.cmdSendQueue.put([Ptype.HELLO.value, payloadHello])
         print("Hello packet sent")
 
     def sortPackets(self, payloadType, payload):
+        """..."""
         match payloadType:
             case Ptype.DATA.value:
                 sendChannel = payload[0]
@@ -65,24 +84,6 @@ class Server:
         channelNumber = payload[0]
         bitRateMbitSec = payload[1]
         self.spw.channels[channelNumber].setTransmissionRate(bitRateMbitSec)
-
-    def searchForConnections(self):
-        """
-        accepts incoming tcp socket connection, creates hello packet, puts it to send queue and starts tcp socket
-        receive and send threads
-        """
-        print("searching for connection")
-        self.clientSocket, self.addr = self.server.accept()
-        print(f"Connection established with {self.addr}")
-        print("-------------------------------------------------------------")
-        self.createHelloPacket()
-
-        self.active = True
-
-        self.clientSocket.settimeout(self.timeoutSek)
-
-        self.receiveThread = threading.Thread(target=self.receiveMessage, args=()).start()
-        self.sendThread = threading.Thread(target=self.sendMessage, args=()).start()
 
     def close(self):
         """shuts down the socket server and the spw connection with all its threads"""

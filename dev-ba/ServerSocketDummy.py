@@ -40,6 +40,22 @@ class Server:
         print(f"Server listening on {self.host}:{self.port}")
         self.searchForConnections()
 
+    def searchForConnections(self):
+        """..."""
+        print("searching for new connection")
+        self.clientSocket, self.addr = self.server.accept()
+        print(f"Connection established with {self.addr}")
+        print("-------------------------------------------------------------")
+        self.createHelloPacket()
+
+        self.active = True
+
+        self.clientSocket.settimeout(self.timeoutSek)
+
+        self.receiveThread = threading.Thread(target=self.receiveMessage, args=()).start()
+        self.sendThread = threading.Thread(target=self.sendMessage, args=()).start()
+        self.sendThread = threading.Thread(target=self.sendMessage, args=()).start()
+
     def Hello(self):
         """
         creates the hello packet for the client providing information, in detail hw device, serial number,
@@ -63,13 +79,14 @@ class Server:
         return payload
 
     def createHelloPacket(self):
+        """..."""
         payloadHello = self.Hello()
         # type of packet, payload
         self.cmdSendQueue.put([Ptype.HELLO.value, payloadHello])
         print("Hello packet sent")
 
     def sortPackets(self, payloadType, payload):
-        print(time.time_ns())
+        """...."""
         match payloadType:
             case Ptype.DATA.value:
                 # payload = payload[1:]
@@ -80,20 +97,7 @@ class Server:
             case _:
                 print("invalid Payload type")
 
-    def searchForConnections(self):
-        """..."""
-        print("searching for new connection")
-        self.clientSocket, self.addr = self.server.accept()
-        print(f"Connection established with {self.addr}")
-        print("-------------------------------------------------------------")
-        self.createHelloPacket()
 
-        self.active = True
-
-        self.clientSocket.settimeout(self.timeoutSek)
-
-        self.receiveThread = threading.Thread(target=self.receiveMessage, args=()).start()
-        self.sendThread = threading.Thread(target=self.sendMessage, args=()).start()
 
     def close(self):
         """shuts down the socket server and the spw connection with all its threads"""
@@ -217,10 +221,7 @@ class Server:
             try:
                 # Socket server sending thread looking for packets received over spw on every available channel
                 payload = self.dummyQueue.get(block=True, timeout=self.timeoutSek)
-                #print(f"server socket send {payload}")
                 self.dummyQueue.task_done()
-                #print(payload[0])
-                #print(payload[1])
                 # Sync pattern (5 bytes chars)
                 header = b'\xc0\x1d\xc0\xff\xee'
                 # protocol version (1 Byte uint -> 0-255)

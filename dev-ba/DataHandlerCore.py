@@ -1,5 +1,7 @@
 import queue
 import threading
+import time
+from datetime import datetime
 from enums import Ptype
 
 
@@ -14,6 +16,14 @@ class DataHandler(threading.Thread):
     def run(self):
         # TODO start threads for queues
         pass
+
+    def createTimestamp(self):
+        baTime = bytearray(int(time.time_ns()).to_bytes(8, 'big'))
+        print(baTime)
+        baInt = int.from_bytes(baTime)
+        print(baInt)
+        dt = datetime.fromtimestamp(baInt / 1000000000)
+        print(dt)
 
     def updateClients(self, clients):
         """
@@ -35,15 +45,6 @@ class DataHandler(threading.Thread):
         for c in self.clients:
             print(f"\nDevice: {c.hwDevice} on interface type {c.hwInterfaceType} with {c.numChannels} channels "
                   f"as ID:{c.ID} on {c.port}")
-
-    def sendThread(self):
-        # TODO sort packets to data or cmd queue
-        pass
-
-    def receiveThread(self):
-        # TODO check for packets in data or cmd queue
-        # TODO further distribute packets to extensions and/or DB
-        pass
 
     def toSendQueue(self, ID, ptype, payload):
         # Function to call from i.e. extensions to send messages
