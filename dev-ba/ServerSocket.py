@@ -51,10 +51,10 @@ class Server:
         print("-------------------------------------------------------------")
         self.clientSocket.settimeout(self.timeoutSek)
 
+        self.createHelloPacket()
+
         self.receiveThread = threading.Thread(target=self.receiveMessage, args=()).start()
         self.sendThread = threading.Thread(target=self.sendMessage, args=()).start()
-
-        self.createHelloPacket()
 
     def createHelloPacket(self):
         """..."""
@@ -75,7 +75,11 @@ class Server:
             case Ptype.BYE.value:
                 self.close()
             case Ptype.CONFIG.value:
-                self.config(payload[1:])
+                self.config(payload)
+            case Ptype.RESET.value:
+                self.resetHw()
+            case Ptype.STATUS.value:
+                self.getStatus()
             case _:
                 print("invalid Payload type")
 
@@ -84,6 +88,15 @@ class Server:
         channelNumber = payload[0]
         bitRateMbitSec = payload[1]
         self.spw.channels[channelNumber].setTransmissionRate(bitRateMbitSec)
+
+    def resetHw(self):
+        self.spw.firstDevice.resetDevice()
+        print("--Device reset successfully")
+
+    def getStatus(self):
+        self.spw.getDeviceInfo()
+        print(self.spw.deviceName)
+        self.cmdSendQueue.put([Ptype.STATUS.value, self.spw.deviceName.encode('utf-8')])
 
     def close(self):
         """shuts down the socket server and the spw connection with all its threads"""

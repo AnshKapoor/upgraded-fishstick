@@ -100,13 +100,22 @@ class Core:
 if __name__ == "__main__":
     c = Core()
 
+    time.sleep(1)
+    # c.dataHandler.toSendQueue(0, Ptype.RESET.value, b'x\00')
+    c.dataHandler.toSendQueue(0, Ptype.CONFIG.value, b'\x00\x64')
+    time.sleep(1)
+    c.dataHandler.toSendQueue(0, Ptype.STATUS.value, b'\x00')
+
+
+
     while True:
         time.sleep(1)
-        id = input("choose ID: ")
-        channel = input("choose channel: ")
-        size = input("size payload: ")
-        payload = int(channel).to_bytes(1, 'big') + bytearray(int(size))
-        c.dataHandler.toSendQueue(int(id), Ptype.DATA.value, payload)
+
+        # id = input("choose ID: ")
+        # channel = input("choose channel: ")
+        # size = input("size payload: ")
+        # payload = int(channel).to_bytes(1, 'big') + bytearray(int(size))
+        # c.dataHandler.toSendQueue(int(id), Ptype.DATA.value, payload)
 
         # id = input("choose ID")
         # c.dataHandler.toSendQueue(int(id), Ptype.BYE.value, b'\x00')

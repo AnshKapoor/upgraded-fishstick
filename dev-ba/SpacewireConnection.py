@@ -1,4 +1,5 @@
 import queue
+import time
 
 from ChannelSPW import ChannelSPW
 from util import getFirstDevice
@@ -15,6 +16,8 @@ class Spacewire:
         self.deviceName = None
         self.serialNumber = None
 
+        self.firstDevice = None
+
         self.cmdReceiveQueue = queue.Queue()
         self.cmdSendQueue = queue.Queue()
 
@@ -22,20 +25,19 @@ class Spacewire:
         self.createChannels()
 
     def getDeviceInfo(self):
-        firstDevice = getFirstDevice()
+        self.firstDevice = getFirstDevice()
+
         # get available data channels of connected device
-        channels = firstDevice.getChannels()
+        channels = self.firstDevice.getChannels()
         if channels:
             for channel in channels:
                 # Ignore the configuration channel.
                 if channel.channelNumber != 0:
                     self.dataChannelList.append(channel.channelNumber)
-        print(f"{self.dataChannelList=}")
-        #port = Port(firstDevice.deviceID, 1)
 
-        self.busType = firstDevice.getBusType()
-        self.deviceName = firstDevice.getDeviceName()
-        self.serialNumber = firstDevice.getSerialNumber()
+        self.busType = self.firstDevice.getBusType()
+        self.deviceName = self.firstDevice.getDeviceName()
+        self.serialNumber = self.firstDevice.getSerialNumber()
 
     def close(self):
         for ch in self.channels:

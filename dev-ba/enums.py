@@ -9,3 +9,8 @@ class Ptype(Enum):
     STATUS = 30
     RESET = 40
     BYE = 50
+
+
+class Timeouts(Enum):
+    TimeoutSek = 0.0000001
+    TimeoutNs = 100

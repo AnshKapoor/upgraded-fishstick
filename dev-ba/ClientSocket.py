@@ -123,6 +123,9 @@ class Client(threading.Thread):
                 self.cmdReceiveQueue.put([self.ID, self.port, payloadType, payload])
             case Ptype.DATA.value:
                 self.receiveQueue.put(payload)
+            case Ptype.STATUS.value:
+                print("status received")
+                print(payload)
             case _:
                 print("invalid Payload type")
 

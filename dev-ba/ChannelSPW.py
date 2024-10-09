@@ -23,6 +23,8 @@ class ChannelSPW:
 
         self.firstDevice = getFirstDevice()
 
+        self.timeoutSek = 0.000000001
+
         self.channel_rx = Channel(self.channelNumber, self.firstDevice.deviceID)
         self.channel_tx = Channel(self.channelNumber, self.firstDevice.deviceID)
 
@@ -48,6 +50,7 @@ class ChannelSPW:
     def setTransmissionRate(self, bitRateMbitSec):
         # set transmission speed
         self.link.setTransmitSignallingRate(bitRateMbitSec)
+        print(f" \nset signaling rate to {bitRateMbitSec} Mbit / s on channel {self.channelNumber} \n")
 
     def sendMessage(self):
         """
@@ -58,7 +61,7 @@ class ChannelSPW:
             # check for data data queue
             try:
                 # TODO timeout
-                item = self.sendQueue.get(block=False)
+                item = self.sendQueue.get(block=True, timeout=self.timeoutSek)
                 print(f"{item} from data in send thread SPW conn")
                 self.sendQueue.task_done()
                 self.send(item)
@@ -100,7 +103,7 @@ class ChannelSPW:
                 continue
             try:
                 # TODO block
-                self.receiveQueue.put([Ptype.DATA.value, channelNumberBytes + bytes(message)], block=False)
+                self.receiveQueue.put([Ptype.DATA.value, channelNumberBytes + bytes(message)], block=True, timeout=self.timeoutSek)
             except queue.Full:
                 print("data receive queue spw full")
         print(f"receive thread spw gone {self.channelNumber}")

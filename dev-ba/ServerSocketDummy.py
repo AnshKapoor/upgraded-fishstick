@@ -64,7 +64,7 @@ class Server:
         deviceName = "Peter0"
         serialNumber = "123456789"
         busType = "Spacewire"
-        dataChannelList = [1, 2]
+        dataChannelList = [1, 2, 3, 4]
 
         payload = len(str(deviceName)).to_bytes(1, 'big')
         payload += len(str(serialNumber)).to_bytes(1, 'big')
