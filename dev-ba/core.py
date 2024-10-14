@@ -1,6 +1,5 @@
 import queue
 import threading
-
 import strictyaml
 import path
 import time
@@ -8,6 +7,7 @@ import time
 from ClientSocket import Client
 from DataHandlerCore import DataHandler
 from enums import Ptype
+from enums import Timeouts
 
 
 class Core:
@@ -15,28 +15,29 @@ class Core:
         self.parsedConfig = {}
         self.clients = []
         self.dataHandler = DataHandler()
-        self.timeoutSek = 0.000000001
+        self.timeoutSek = Timeouts.TimeoutSek
         self.main()
+        self.active = True
 
     def main(self):
         self.loadConfig()
         self.dataHandler.start()
         self.createClients()
+        self.active = True
         threading.Thread(target=self.cmdManagingThread, args=()).start()
 
     def cmdManagingThread(self):
         """main thread of the core for managing all incoming cmd packets"""
-        while True:
+        while self.active:
             for cl in self.clients:
                 try:
                     item = cl.cmdReceiveQueue.get(block=True, timeout=self.timeoutSek)
                     # match payloadType
-                    match item[2]:
+                    match item[0]:
                         case Ptype.HELLO.value:
-                            ID = item[0]
-                            port = item[1]
-                            payload = item[3]
-                            # get length
+                            ID = cl.ID
+                            payload = item[1]
+                            # first 4 bytes are the length of following data
                             l = payload[0:4]
                             # cut off length bytes
                             payload = payload[4:]
@@ -55,20 +56,35 @@ class Core:
                             self.dataHandler.updateClients(self.clients)
 
                         case Ptype.CONFIG.value:
-                            print("config packet received")
+                            if item[1] == b'\x01':
+                                print("configuration successfully completed")
+                            elif item[1] == b'\x00':
+                                print("configuration failed")
+
                         case Ptype.STATUS.value:
                             print("status packet received")
+                            print(item[1])
+
+                        case Ptype.RESET.value:
+                            if item[1] == b'\x01':
+                                print("device successfully reset")
+                            elif item[1] == b'\x00':
+                                print("reset failed")
+
                         case Ptype.BYE.value:
                             print("bye")
+                            self.close()
+                            self.active = False
+                            break
+
                         case _:
                             print("invalid packet format")
                 except queue.Empty:
                     continue
-                except ConnectionResetError:
-                    break
+        print("core main gone")
 
     def createClients(self):
-        """..."""
+        """creates client class instances according lo loaded configuration file"""
         for ID, conn in enumerate(self.parsedConfig["connections"]["spacewire"]):
             host = self.parsedConfig["connections"]["spacewire"][conn]["host"]
             port = self.parsedConfig["connections"]["spacewire"][conn]["port"]
@@ -95,21 +111,21 @@ class Core:
     def close(self):
         for cl in self.clients:
             cl.close()
+        self.dataHandler.close()
 
 
 if __name__ == "__main__":
+    """format: [ID, ptype, payload]"""
     c = Core()
 
     time.sleep(1)
-    # c.dataHandler.toSendQueue(0, Ptype.RESET.value, b'x\00')
-    c.dataHandler.toSendQueue(0, Ptype.CONFIG.value, b'\x00\x64')
-    time.sleep(1)
-    c.dataHandler.toSendQueue(0, Ptype.STATUS.value, b'\x00')
 
+    # c.dataHandler.sendQueue.put([0, Ptype.BYE.value, b'x\00'])
 
+    # c.dataHandler.sendQueue.put([0, Ptype.DATA.value, b'\xff\x00\xff'])
 
-    while True:
-        time.sleep(1)
+    # while True:
+    #     time.sleep(1)
 
         # id = input("choose ID: ")
         # channel = input("choose channel: ")

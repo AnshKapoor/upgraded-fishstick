@@ -3,7 +3,6 @@ import threading
 
 from enums import Ptype
 
-from util import getFirstDevice
 from STAR_system.data_chunk import DataChunk
 from STAR_system.link_port import LinkPort
 from STAR_system.packet import Packet
@@ -14,14 +13,14 @@ from STAR_system.port import Port
 
 
 class ChannelSPW:
-    def __init__(self, channelNumber):
+    def __init__(self, channelNumber, firstDevice):
         self.receiveQueue = queue.Queue()
         self.sendQueue = queue.Queue()
 
         self.channelNumber = channelNumber
         self.active = True
 
-        self.firstDevice = getFirstDevice()
+        self.firstDevice = firstDevice
 
         self.timeoutSek = 0.000000001
 

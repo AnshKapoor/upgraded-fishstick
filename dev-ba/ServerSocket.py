@@ -7,6 +7,8 @@ import time
 from enums import Ptype
 from SpacewireConnection import Spacewire
 
+from STAR_system.STAR_exceptions import STARAPIError
+
 
 class Server:
     """
@@ -40,6 +42,10 @@ class Server:
         print(f"Server listening on {self.host}:{self.port}")
         self.searchForConnections()
 
+    def main(self):
+        """ TODO own thread, handles packets"""
+        pass
+
     def searchForConnections(self):
         """
         accepts incoming tcp socket connection, creates hello packet, puts it to send queue and starts tcp socket
@@ -66,6 +72,7 @@ class Server:
 
     def sortPackets(self, payloadType, payload):
         """..."""
+        # TODO queue to main thread?
         match payloadType:
             case Ptype.DATA.value:
                 sendChannel = payload[0]
@@ -87,16 +94,38 @@ class Server:
         """sets transmission rate in MBit/s to given channel"""
         channelNumber = payload[0]
         bitRateMbitSec = payload[1]
-        self.spw.channels[channelNumber].setTransmissionRate(bitRateMbitSec)
+        try:
+            self.spw.channels[channelNumber].setTransmissionRate(bitRateMbitSec)
+            payloadAnswer = bytes(channelNumber)
+            # 01 for success
+            payloadAnswer += b'\x01'
+            self.cmdSendQueue.put([Ptype.CONFIG.value, payloadAnswer])
+        except STARAPIError:
+            payloadAnswer = bytes(channelNumber)
+            # 00 for error
+            payloadAnswer += b'\x00'
+            self.cmdSendQueue.put([Ptype.CONFIG.value, payloadAnswer])
 
     def resetHw(self):
-        self.spw.firstDevice.resetDevice()
-        print("--Device reset successfully")
+        try:
+            self.spw.firstDevice.resetDevice()
+            print("--Device reset successfully")
+            # 01 for success
+            payloadAnswer = b'\x01'
+            self.cmdSendQueue.put([Ptype.RESET.value, payloadAnswer])
+        except STARAPIError:
+            # 00 for error
+            payloadAnswer = b'\x00'
+            self.cmdSendQueue.put([Ptype.RESET.value, payloadAnswer])
 
     def getStatus(self):
         self.spw.getDeviceInfo()
-        print(self.spw.deviceName)
-        self.cmdSendQueue.put([Ptype.STATUS.value, self.spw.deviceName.encode('utf-8')])
+        if self.spw.firstDevice is not None:
+            print(self.spw.deviceName)
+            self.cmdSendQueue.put([Ptype.STATUS.value, self.spw.deviceName.encode('utf-8')])
+        else:
+            # if no device is connected return 00 as payload
+            self.cmdSendQueue.put([Ptype.STATUS.value, b'\x00'])
 
     def close(self):
         """shuts down the socket server and the spw connection with all its threads"""
@@ -224,7 +253,7 @@ class Server:
             for ch in self.spw.channels:
                 try:
                     # Socket server sending thread looking for packets received over spw on every available channel
-                    payload = ch.receiveQueue.get(block=False)
+                    payload = ch.receiveQueue.get(block=True, timeout=self.timeoutSek)
                     print(f"server socket send {payload}")
                     ch.receiveQueue.task_done()
                     # Sync pattern (5 bytes chars)

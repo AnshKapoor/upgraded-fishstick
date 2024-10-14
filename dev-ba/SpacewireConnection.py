@@ -45,7 +45,7 @@ class Spacewire:
 
     def createChannels(self):
         for c in self.dataChannelList:
-            channel = ChannelSPW(c)
+            channel = ChannelSPW(c, self.firstDevice)
             self.channels.append(channel)
 
     def Hello(self):

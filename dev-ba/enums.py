@@ -11,6 +11,6 @@ class Ptype(Enum):
     BYE = 50
 
 
-class Timeouts(Enum):
+class Timeouts(float, Enum):
     TimeoutSek = 0.0000001
     TimeoutNs = 100

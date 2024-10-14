@@ -86,21 +86,44 @@ class Server:
         print("Hello packet sent")
 
     def sortPackets(self, payloadType, payload):
-        """...."""
+        """..."""
+        # TODO queue to main thread?
         match payloadType:
             case Ptype.DATA.value:
-                # payload = payload[1:]
                 self.dummyQueue.put([Ptype.DATA.value, payload])
             case Ptype.BYE.value:
-                print(self.port)
                 self.close()
+            case Ptype.CONFIG.value:
+                self.config(payload)
+            case Ptype.RESET.value:
+                self.resetHw()
+            case Ptype.STATUS.value:
+                self.getStatus()
             case _:
                 print("invalid Payload type")
 
+    def config(self, payload):
+        """sets transmission rate in MBit/s to given channel"""
+        channelNumber = payload[0]
+        bitRateMbitSec = payload[1]
 
+        payloadAnswer = channelNumber.to_bytes(1, 'big')
+        payloadAnswer += bitRateMbitSec.to_bytes(1, 'big')
+        # 01 for success
+        payloadAnswer += b'\x01'
+        self.cmdSendQueue.put([Ptype.CONFIG.value, payloadAnswer])
+
+    def resetHw(self):
+        payloadAnswer = b'\x01'
+        self.cmdSendQueue.put([Ptype.RESET.value, payloadAnswer])
+
+    def getStatus(self):
+        self.cmdSendQueue.put([Ptype.STATUS.value, b'\x00'])
 
     def close(self):
         """shuts down the socket server and the spw connection with all its threads"""
+        self.cmdSendQueue.put([Ptype.BYE.value, b'\x00'])
+        time.sleep(1)
         self.active = False
         self.clientSocket.close()
 
@@ -124,8 +147,6 @@ class Server:
             except ConnectionResetError:
                 break
 
-            print("dataBuffer length: " + str(dataBufferLength))
-
             if newPacket:
                 if dataBufferLength >= HEADERSIZE:
                     while True:
@@ -135,7 +156,6 @@ class Server:
                             payloadLength = int.from_bytes(dataBuffer[startOfPacket + 6:startOfPacket + 9], 'big')
                             print(f"{payloadLength=}")
                             protocolVersion = int.from_bytes(dataBuffer[startOfPacket + 5:startOfPacket + 6], 'big')
-                            print(f"{protocolVersion=}")
                             payloadType = int.from_bytes(dataBuffer[startOfPacket + 9:startOfPacket + 10], 'big')
                             print(f"payloadType={Ptype(payloadType).name}")
 
@@ -150,7 +170,7 @@ class Server:
                             if dataBufferLength >= payloadLength:
                                 payload = dataBuffer[:payloadLength]
 
-                                print("Full payload received, first")
+                                print(f"{payload=}")
                                 self.sortPackets(payloadType, payload)
                                 dataBuffer = dataBuffer[payloadLength:]
                                 dataBufferLength = len(dataBuffer)
