@@ -12,5 +12,7 @@ class Ptype(Enum):
 
 
 class Timeouts(float, Enum):
-    TimeoutSek = 0.0000001
-    TimeoutNs = 100
+    TimeoutNs = 1
+    TimeoutMs = TimeoutNs / 1000
+    TimeoutSek = TimeoutNs / 1000000000
+

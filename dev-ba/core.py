@@ -119,10 +119,12 @@ if __name__ == "__main__":
     c = Core()
 
     time.sleep(1)
+    c.dataHandler.sendQueue.put([0, Ptype.BYE.value, b'\x00'])
 
     # c.dataHandler.sendQueue.put([0, Ptype.BYE.value, b'x\00'])
-
-    # c.dataHandler.sendQueue.put([0, Ptype.DATA.value, b'\xff\x00\xff'])
+    # while True:
+    #     c.dataHandler.sendQueue.put([0, Ptype.DATA.value, b'\x01\x00\xff'])
+    #     time.sleep(2)
 
     # while True:
     #     time.sleep(1)

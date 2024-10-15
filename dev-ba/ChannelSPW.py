@@ -2,6 +2,7 @@ import queue
 import threading
 
 from enums import Ptype
+from enums import Timeouts
 
 from STAR_system.data_chunk import DataChunk
 from STAR_system.link_port import LinkPort
@@ -22,7 +23,8 @@ class ChannelSPW:
 
         self.firstDevice = firstDevice
 
-        self.timeoutSek = 0.000000001
+        self.timeoutSek = Timeouts.TimeoutSek
+        self.timeoutMs = Timeouts.TimeoutMs
 
         self.channel_rx = Channel(self.channelNumber, self.firstDevice.deviceID)
         self.channel_tx = Channel(self.channelNumber, self.firstDevice.deviceID)
@@ -101,7 +103,6 @@ class ChannelSPW:
             if not message:
                 continue
             try:
-                # TODO block
                 self.receiveQueue.put([Ptype.DATA.value, channelNumberBytes + bytes(message)], block=True, timeout=self.timeoutSek)
             except queue.Full:
                 print("data receive queue spw full")
@@ -118,7 +119,7 @@ class ChannelSPW:
 
         # TODO right timeout
         # Wait for packet to be received. timeout in mS to wait for (-1) is wait indefinitely
-        status = receiveTransferOperation.waitOnTransferOperationCompletion(timeout=100)
+        status = receiveTransferOperation.waitOnTransferOperationCompletion(timeout=1)
 
         # Check that valid packet was received.
         if status == STAR_TRANSFER_STATUS.STAR_TRANSFER_STATUS_COMPLETE:

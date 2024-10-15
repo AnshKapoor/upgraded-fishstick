@@ -40,12 +40,6 @@ class Server:
         print(f"Server listening on {self.host}:{self.port}")
         self.searchForConnections()
 
-    def searchForConnections(self):
-        """..."""
-        print("searching for new connection")
-        self.clientSocket, self.addr = self.server.accept()
-        print(f"Connection established with {self.addr}")
-        print("-------------------------------------------------------------")
         self.createHelloPacket()
 
         self.active = True
@@ -54,14 +48,23 @@ class Server:
 
         self.receiveThread = threading.Thread(target=self.receiveMessage, args=()).start()
         self.sendThread = threading.Thread(target=self.sendMessage, args=()).start()
-        self.sendThread = threading.Thread(target=self.sendMessage, args=()).start()
+
+    def main(self):
+        pass
+
+    def searchForConnections(self):
+        """..."""
+        print("searching for new connection")
+        self.clientSocket, self.addr = self.server.accept()
+        print(f"Connection established with {self.addr}")
+        print("-------------------------------------------------------------")
 
     def Hello(self):
         """
         creates the hello packet for the client providing information, in detail hw device, serial number,
         hw interface type and number if channels
         """
-        deviceName = "Peter0"
+        deviceName = "Dummy0"
         serialNumber = "123456789"
         busType = "Spacewire"
         dataChannelList = [1, 2, 3, 4]
@@ -169,8 +172,6 @@ class Server:
 
                             if dataBufferLength >= payloadLength:
                                 payload = dataBuffer[:payloadLength]
-
-                                print(f"{payload=}")
                                 self.sortPackets(payloadType, payload)
                                 dataBuffer = dataBuffer[payloadLength:]
                                 dataBufferLength = len(dataBuffer)
@@ -198,8 +199,6 @@ class Server:
 
                     dataBuffer = dataBuffer[payloadLength:]
                     dataBufferLength = len(dataBuffer)
-                    # print("dataBuffer after payload cut: " + str(dataBuffer))
-
                     newPacket = True
                 else:
                     print("Payload not completely received, waiting for more data...")
