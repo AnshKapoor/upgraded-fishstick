@@ -1,13 +1,11 @@
 import queue
 import socket
 import threading
-import struct
 import time
 
 from enums import Ptype
+from enums import Timeouts
 from SpacewireConnection import Spacewire
-
-from STAR_system.STAR_exceptions import STARAPIError
 
 
 class Server:
@@ -23,24 +21,22 @@ class Server:
         self.cmdReceiveQueue = queue.Queue()
         self.cmdSendQueue = queue.Queue()
 
-        self.timeoutSek = 0.000000001
+        self.timeoutSek = Timeouts.TimeoutSek
 
         self.reopen = True
         self.active = True
         self.clientSocket = None
+
         self.receiveThread = None
         self.sendThread = None
+        self.cmdThread = None
+
         self.addr = ""
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.spw = None
         self.run()
 
     def run(self):
-        TimeoutNs = 1
-        TimeoutMs = TimeoutNs / 1000
-        TimeoutSek = TimeoutNs / 1000000000
-        print(TimeoutNs, TimeoutMs, TimeoutSek)
-
         self.server.bind((self.host, self.port))
         # maximum of one connection: 1
         self.server.listen(1)
@@ -48,30 +44,31 @@ class Server:
         self.searchForConnections()
 
     def main(self):
-        """ TODO own thread, handles packets"""
-        try:
-            item = self.cmdReceiveQueue.get(block=True, timeout=self.timeoutSek)
-            payloadType = item[0]
-            payload = item[1]
+        """ handles cmd packets"""
+        while self.active:
+            try:
+                item = self.cmdReceiveQueue.get(block=True, timeout=self.timeoutSek)
+                payloadType = item[0]
+                payload = item[1]
 
-            match payloadType:
-                case Ptype.DATA.value:
-                    sendChannel = payload[0]
-                    payload = payload[1:]
-                    # -1 for 0 being the config port and not listed in the spw.channels, so channel 1 is at [0]
-                    self.spw.channels[sendChannel - 1].sendQueue.put(payload)
-                case Ptype.BYE.value:
-                    self.close()
-                case Ptype.CONFIG.value:
-                    self.config(payload)
-                case Ptype.RESET.value:
-                    self.resetHw()
-                case Ptype.STATUS.value:
-                    self.getStatus()
-                case _:
-                    print("invalid Payload type")
-        except queue.Empty:
-            pass
+                match payloadType:
+                    case Ptype.DATA.value:
+                        sendChannel = payload[0]
+                        payload = payload[1:]
+                        # -1 for 0 being the config port and not listed in the spw.channels, so channel 1 is at [0]
+                        self.spw.channels[sendChannel - 1].sendQueue.put(payload)
+                    case Ptype.BYE.value:
+                        self.close()
+                    case Ptype.CONFIG.value:
+                        self.cmdSendQueue.put([Ptype.RESET.value, self.spw.config(payload)])
+                    case Ptype.RESET.value:
+                        self.cmdSendQueue.put([Ptype.RESET.value, self.spw.resetHw()])
+                    case Ptype.STATUS.value:
+                        self.cmdSendQueue.put([Ptype.RESET.value, self.spw.getStatus()])
+                    case _:
+                        print("invalid Payload type")
+            except queue.Empty:
+                pass
 
     def searchForConnections(self):
         """
@@ -88,6 +85,7 @@ class Server:
 
         self.receiveThread = threading.Thread(target=self.receiveMessage, args=()).start()
         self.sendThread = threading.Thread(target=self.sendMessage, args=()).start()
+        self.cmdThread = threading.Thread(target=self.main, args=()).start()
 
     def createHelloPacket(self):
         """..."""
@@ -112,50 +110,13 @@ class Server:
         else:
             print("invalid Payload type")
 
-    def config(self, payload):
-        """sets transmission rate in MBit/s to given channel"""
-        channelNumber = payload[0]
-        bitRateMbitSec = payload[1]
-        try:
-            self.spw.channels[channelNumber].setTransmissionRate(bitRateMbitSec)
-            payloadAnswer = bytes(channelNumber)
-            # 01 for success
-            payloadAnswer += b'\x01'
-            self.cmdSendQueue.put([Ptype.CONFIG.value, payloadAnswer])
-        except STARAPIError:
-            payloadAnswer = bytes(channelNumber)
-            # 00 for error
-            payloadAnswer += b'\x00'
-            self.cmdSendQueue.put([Ptype.CONFIG.value, payloadAnswer])
-
-    def resetHw(self):
-        try:
-            self.spw.firstDevice.resetDevice()
-            print("--Device reset successfully")
-            # 01 for success
-            payloadAnswer = b'\x01'
-            self.cmdSendQueue.put([Ptype.RESET.value, payloadAnswer])
-        except STARAPIError:
-            # 00 for error
-            payloadAnswer = b'\x00'
-            self.cmdSendQueue.put([Ptype.RESET.value, payloadAnswer])
-
-    def getStatus(self):
-        self.spw.getDeviceInfo()
-        if self.spw.firstDevice is not None:
-            print(self.spw.deviceName)
-            self.cmdSendQueue.put([Ptype.STATUS.value, self.spw.deviceName.encode('utf-8')])
-        else:
-            # if no device is connected return 00 as payload
-            self.cmdSendQueue.put([Ptype.STATUS.value, b'\x00'])
-
     def close(self):
         """shuts down the socket server and the spw connection with all its threads"""
-        self.cmdSendQueue.put([Ptype.BYE.value, b'\x00'])
-        time.sleep(0.1)
         self.active = False
-        self.clientSocket.close()
+        time.sleep(0.1)
         self.spw.close()
+        time.sleep(0.1)
+        self.clientSocket.close()
 
     def receiveMessage(self):
         """receive thread for receiving socket messages from client(core class)"""

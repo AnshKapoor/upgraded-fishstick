@@ -4,6 +4,7 @@ import threading
 import time
 
 from enums import Ptype
+from enums import Timeouts
 
 
 class Server:
@@ -17,12 +18,11 @@ class Server:
         self.host = host
         self.port = port
 
-        self.cmdReceiveQueue = queue.Queue()
-        self.cmdSendQueue = queue.Queue()
+        self.cmdDummyQueue = queue.Queue()
 
-        self.dummyQueue = queue.Queue()
+        self.dataDummyQueue = queue.Queue()
 
-        self.timeoutSek = 0.000000001
+        self.timeoutSek = Timeouts.TimeoutSek
 
         self.reopen = True
         self.active = True
@@ -85,49 +85,26 @@ class Server:
         """..."""
         payloadHello = self.Hello()
         # type of packet, payload
-        self.cmdSendQueue.put([Ptype.HELLO.value, payloadHello])
+        self.cmdDummyQueue.put([Ptype.HELLO.value, payloadHello])
         print("Hello packet sent")
 
     def sortPackets(self, payloadType, payload):
         """..."""
-        # TODO queue to main thread?
-        match payloadType:
-            case Ptype.DATA.value:
-                self.dummyQueue.put([Ptype.DATA.value, payload])
-            case Ptype.BYE.value:
-                self.close()
-            case Ptype.CONFIG.value:
-                self.config(payload)
-            case Ptype.RESET.value:
-                self.resetHw()
-            case Ptype.STATUS.value:
-                self.getStatus()
-            case _:
-                print("invalid Payload type")
+        acceptableCmdTypes = [Ptype.HELLO.value, Ptype.STATUS.value, Ptype.RESET.value, Ptype.CONFIG.value]
 
-    def config(self, payload):
-        """sets transmission rate in MBit/s to given channel"""
-        channelNumber = payload[0]
-        bitRateMbitSec = payload[1]
-
-        payloadAnswer = channelNumber.to_bytes(1, 'big')
-        payloadAnswer += bitRateMbitSec.to_bytes(1, 'big')
-        # 01 for success
-        payloadAnswer += b'\x01'
-        self.cmdSendQueue.put([Ptype.CONFIG.value, payloadAnswer])
-
-    def resetHw(self):
-        payloadAnswer = b'\x01'
-        self.cmdSendQueue.put([Ptype.RESET.value, payloadAnswer])
-
-    def getStatus(self):
-        self.cmdSendQueue.put([Ptype.STATUS.value, b'\x00'])
+        if payloadType == Ptype.DATA.value:
+            self.dataDummyQueue.put([payloadType, payload])
+        elif payloadType == Ptype.BYE.value:
+            self.close()
+        elif payloadType in acceptableCmdTypes:
+            self.cmdDummyQueue.put([payloadType, b'\x00'])
+        else:
+            print("invalid Payload type")
 
     def close(self):
         """shuts down the socket server and the spw connection with all its threads"""
-        self.cmdSendQueue.put([Ptype.BYE.value, b'\x00'])
-        time.sleep(1)
         self.active = False
+        time.sleep(0.1)
         self.clientSocket.close()
 
     def receiveMessage(self):
@@ -155,11 +132,11 @@ class Server:
                     while True:
                         # Check for sync pattern
                         if dataBuffer[startOfPacket:startOfPacket + 5] == b'\xc0\x1d\xc0\xff\xee':
-                            print("Packet Sync pattern found!")
                             payloadLength = int.from_bytes(dataBuffer[startOfPacket + 6:startOfPacket + 9], 'big')
-                            print(f"{payloadLength=}")
                             protocolVersion = int.from_bytes(dataBuffer[startOfPacket + 5:startOfPacket + 6], 'big')
                             payloadType = int.from_bytes(dataBuffer[startOfPacket + 9:startOfPacket + 10], 'big')
+
+                            print("Packet Sync pattern found!")
                             print(f"payloadType={Ptype(payloadType).name}")
 
                             if dataBufferLength == startOfPacket + HEADERSIZE:
@@ -212,8 +189,8 @@ class Server:
             # cmd queue
             try:
                 # Socket server sending thread looking for packets received over spw on every available channel
-                payload = self.cmdSendQueue.get(block=True, timeout=self.timeoutSek)
-                self.cmdSendQueue.task_done()
+                payload = self.cmdDummyQueue.get(block=True, timeout=self.timeoutSek)
+                self.cmdDummyQueue.task_done()
                 # Sync pattern (5 bytes chars)
                 header = b'\xc0\x1d\xc0\xff\xee'
                 # protocol version (1 Byte uint -> 0-255)
@@ -239,8 +216,8 @@ class Server:
             # data queues
             try:
                 # Socket server sending thread looking for packets received over spw on every available channel
-                payload = self.dummyQueue.get(block=True, timeout=self.timeoutSek)
-                self.dummyQueue.task_done()
+                payload = self.dataDummyQueue.get(block=True, timeout=self.timeoutSek)
+                self.dataDummyQueue.task_done()
                 # Sync pattern (5 bytes chars)
                 header = b'\xc0\x1d\xc0\xff\xee'
                 # protocol version (1 Byte uint -> 0-255)

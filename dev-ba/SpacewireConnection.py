@@ -1,5 +1,4 @@
 import queue
-import time
 
 from ChannelSPW import ChannelSPW
 from util import getFirstDevice

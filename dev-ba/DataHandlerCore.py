@@ -1,19 +1,19 @@
 import queue
 import threading
 import time
-from datetime import datetime
 from enums import Ptype
 from enums import Timeouts
 
 
 class DataHandler(threading.Thread):
-    def __init__(self):
+    def __init__(self, core):
         super(DataHandler, self).__init__()
         self.clients = []
         self.clientQueue = queue.Queue()
         self.timeoutSek = Timeouts.TimeoutSek
         self.lock = threading.Lock()
         self.active = True
+        self.core = core
 
         self.receiveThread = None
         self.sendThread = None
@@ -45,7 +45,7 @@ class DataHandler(threading.Thread):
     def sendMessage(self):
         """
         Forwards a message to be sent from its sendQueue to the sendQueue of the corresponding client, messages need to
-        be provided as follows: [Client ID, Ptype, payload]
+        be provided as follows: [Client ID(int), Ptype(enum), payload(bytes)]
         """
         while self.active:
             try:
@@ -57,6 +57,12 @@ class DataHandler(threading.Thread):
                 match ptype:
                     case Ptype.DATA.value:
                         self.clients[ID].sendQueue.put([ptype, payload])
+                    # special case when shutting down the server, this way the client is also shut down
+                    case Ptype.BYE.value:
+                        print("shutting down...")
+                        self.clients[ID].cmdSendQueue.put([ptype, payload])
+                        time.sleep(0.1)
+                        self.core.close()
                     case _:
                         self.clients[ID].cmdSendQueue.put([ptype, payload])
             except queue.Empty:

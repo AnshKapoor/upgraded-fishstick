@@ -14,7 +14,7 @@ class Core:
     def __init__(self):
         self.parsedConfig = {}
         self.clients = []
-        self.dataHandler = DataHandler()
+        self.dataHandler = DataHandler(self)
         self.timeoutSek = Timeouts.TimeoutSek
         self.main()
         self.active = True
@@ -62,8 +62,10 @@ class Core:
                                 print("configuration failed")
 
                         case Ptype.STATUS.value:
-                            print("status packet received")
-                            print(item[1])
+                            if item[1] == b'\x00':
+                                print("no device connected")
+                            else:
+                                print(item[1])
 
                         case Ptype.RESET.value:
                             if item[1] == b'\x01':
@@ -72,9 +74,8 @@ class Core:
                                 print("reset failed")
 
                         case Ptype.BYE.value:
-                            print("bye")
+                            print("bye packet received, shutting down")
                             self.close()
-                            self.active = False
                             break
 
                         case _:
@@ -112,6 +113,7 @@ class Core:
         for cl in self.clients:
             cl.close()
         self.dataHandler.close()
+        self.active = False
 
 
 if __name__ == "__main__":
@@ -119,15 +121,25 @@ if __name__ == "__main__":
     c = Core()
 
     time.sleep(1)
-    c.dataHandler.sendQueue.put([0, Ptype.BYE.value, b'\x00'])
+    # c.dataHandler.sendQueue.put([0, Ptype.BYE.value, b'\x00'])
 
     # c.dataHandler.sendQueue.put([0, Ptype.BYE.value, b'x\00'])
     # while True:
     #     c.dataHandler.sendQueue.put([0, Ptype.DATA.value, b'\x01\x00\xff'])
     #     time.sleep(2)
 
-    # while True:
-    #     time.sleep(1)
+    #while True:
+    time.sleep(2)
+    c.dataHandler.sendQueue.put([0, Ptype.DATA.value, b'\x01\x00\xff'])
+    time.sleep(2)
+    c.dataHandler.sendQueue.put([0, Ptype.CONFIG.value, b'\x01\x00'])
+    time.sleep(2)
+    c.dataHandler.sendQueue.put([0, Ptype.RESET.value, b'\x00'])
+    time.sleep(2)
+    c.dataHandler.sendQueue.put([0, Ptype.STATUS.value, b'\x00'])
+    time.sleep(2)
+    c.dataHandler.sendQueue.put([0, Ptype.BYE.value, b'\x00'])
+
 
         # id = input("choose ID: ")
         # channel = input("choose channel: ")
