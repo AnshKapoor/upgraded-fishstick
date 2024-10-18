@@ -121,50 +121,12 @@ if __name__ == "__main__":
     c = Core()
 
     time.sleep(1)
-    # c.dataHandler.sendQueue.put([0, Ptype.BYE.value, b'\x00'])
-
-    # c.dataHandler.sendQueue.put([0, Ptype.BYE.value, b'x\00'])
-    # while True:
-    #     c.dataHandler.sendQueue.put([0, Ptype.DATA.value, b'\x01\x00\xff'])
-    #     time.sleep(2)
-
-    #while True:
-    time.sleep(2)
     c.dataHandler.sendQueue.put([0, Ptype.DATA.value, b'\x01\x00\xff'])
-    time.sleep(2)
-    c.dataHandler.sendQueue.put([0, Ptype.CONFIG.value, b'\x01\x00'])
-    time.sleep(2)
+    time.sleep(1)
+    c.dataHandler.sendQueue.put([0, Ptype.CONFIG.value, b'\x01\x64'])
+    time.sleep(1)
     c.dataHandler.sendQueue.put([0, Ptype.RESET.value, b'\x00'])
-    time.sleep(2)
+    time.sleep(1)
     c.dataHandler.sendQueue.put([0, Ptype.STATUS.value, b'\x00'])
-    time.sleep(2)
+    time.sleep(1)
     c.dataHandler.sendQueue.put([0, Ptype.BYE.value, b'\x00'])
-
-
-        # id = input("choose ID: ")
-        # channel = input("choose channel: ")
-        # size = input("size payload: ")
-        # payload = int(channel).to_bytes(1, 'big') + bytearray(int(size))
-        # c.dataHandler.toSendQueue(int(id), Ptype.DATA.value, payload)
-
-        # id = input("choose ID")
-        # c.dataHandler.toSendQueue(int(id), Ptype.BYE.value, b'\x00')
-
-        # n = input()
-        # if n == "exit":
-        #     break
-        # if n == "t1":
-        #     h = b'\x01\xaa\xbb\xcc\xdd\xee'
-        #     c.dataHandler.toSendQueue(0, Ptype.DATA.value, h)
-        # elif n == "t2":
-        #     h = b'\x02\xaa\xbb\xcc\xdd\xee'
-        #     c.dataHandler.toSendQueue(0, Ptype.DATA.value, h)
-        # elif n == "bye":
-        #     c.dataHandler.toSendQueue(0, Ptype.BYE.value, b'\x00')
-        #     time.sleep(1)
-        #     c.close()
-        #     break
-        # elif n == "big":
-        #     _ = b'\x99'
-        #     payload = bytearray(100)
-        #     c.dataHandler.toSendQueue(0, Ptype.DATA.value, _ + payload)

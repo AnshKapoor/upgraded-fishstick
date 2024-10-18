@@ -49,19 +49,18 @@ class Spacewire:
             channel = ChannelSPW(c, self.firstDevice)
             self.channels.append(channel)
 
-    def config(self, payload):
+    def configureProperties(self, payload):
         """sets transmission rate in MBit/s to given channel"""
         channelNumber = payload[0]
         bitRateMbitSec = payload[1]
         try:
             self.channels[channelNumber].setTransmissionRate(bitRateMbitSec)
-            payloadAnswer = bytes(channelNumber)
             # 01 for success
-            payloadAnswer += b'\x01'
-        except STARAPIError:
-            payloadAnswer = bytes(channelNumber)
+            payloadAnswer = b'\x01'
+        except STARAPIError as err:
+            print(err)
             # 00 for error
-            payloadAnswer += b'\x00'
+            payloadAnswer = b'\x00'
         return payloadAnswer
 
     def resetHw(self):
@@ -70,7 +69,8 @@ class Spacewire:
             print("--Device reset successfully")
             # 01 for success
             payloadAnswer = b'\x01'
-        except STARAPIError:
+        except STARAPIError as err:
+            print(err)
             # 00 for error
             payloadAnswer = b'\x00'
         return payloadAnswer

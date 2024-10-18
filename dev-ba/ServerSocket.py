@@ -60,11 +60,11 @@ class Server:
                     case Ptype.BYE.value:
                         self.close()
                     case Ptype.CONFIG.value:
-                        self.cmdSendQueue.put([Ptype.RESET.value, self.spw.config(payload)])
+                        self.cmdSendQueue.put([Ptype.CONFIG.value, self.spw.configureProperties(payload)])
                     case Ptype.RESET.value:
                         self.cmdSendQueue.put([Ptype.RESET.value, self.spw.resetHw()])
                     case Ptype.STATUS.value:
-                        self.cmdSendQueue.put([Ptype.RESET.value, self.spw.getStatus()])
+                        self.cmdSendQueue.put([Ptype.STATUS.value, self.spw.getStatus()])
                     case _:
                         print("invalid Payload type")
             except queue.Empty:
@@ -138,9 +138,6 @@ class Server:
             except ConnectionResetError:
                 break
 
-            print("dataBuffer: " + str(dataBuffer))
-            print("dataBuffer length: " + str(dataBufferLength))
-
             if newPacket:
                 if dataBufferLength >= HEADERSIZE:
                     while True:
@@ -151,8 +148,6 @@ class Server:
                             payloadType = int.from_bytes(dataBuffer[startOfPacket + 9:startOfPacket + 10], 'big')
 
                             print("Packet Sync pattern found!")
-                            print(f"{payloadLength=}")
-                            print(f"{protocolVersion=}")
                             print(f"payloadType={Ptype(payloadType).name}")
 
                             if dataBufferLength == startOfPacket + HEADERSIZE:
@@ -165,12 +160,9 @@ class Server:
 
                             if dataBufferLength >= payloadLength:
                                 payload = dataBuffer[:payloadLength]
-
-                                print("Full payload received: " + str(payload))
                                 self.sortPackets(payloadType, payload)
                                 dataBuffer = dataBuffer[payloadLength:]
                                 dataBufferLength = len(dataBuffer)
-                                print("dataBuffer after payload cut: " + str(dataBuffer))
                                 print("-----------------------")
 
                                 newPacket = True
@@ -190,12 +182,11 @@ class Server:
                 if dataBufferLength >= payloadLength:
                     payload = dataBuffer[:payloadLength]
 
-                    print("Full payload received: " + str(payload))
                     self.sortPackets(payloadType, payload)
 
                     dataBuffer = dataBuffer[payloadLength:]
                     dataBufferLength = len(dataBuffer)
-                    print("dataBuffer after payload cut: " + str(dataBuffer))
+                    print("-----------------------")
 
                     newPacket = True
                 else:

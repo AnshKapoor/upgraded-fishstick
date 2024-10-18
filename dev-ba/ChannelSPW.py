@@ -61,7 +61,6 @@ class ChannelSPW:
             # check for data data queue
             try:
                 item = self.sendQueue.get(block=True, timeout=self.timeoutSek)
-                print(f"{item} from data in send thread SPW conn")
                 self.sendQueue.task_done()
                 self.send(item)
             except queue.Empty:
