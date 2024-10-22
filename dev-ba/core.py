@@ -1,8 +1,9 @@
 import queue
 import threading
-import strictyaml
-import path
 import time
+
+import path
+import strictyaml
 
 from ClientSocket import Client
 from DataHandlerCore import DataHandler
@@ -124,30 +125,13 @@ if __name__ == "__main__":
     # while True:
     #     c.dataHandler.sendQueue.put([0, Ptype.DATA.value, bytes(100)])
     #     time.sleep(1)
-    for i in range(1000):
+
+    for i in range(1):
         channel = 1
         payload = channel.to_bytes(1, 'big')
-        payload += i.to_bytes(2, 'big')
+        payload += bytes(2000)
         c.dataHandler.sendQueue.put([0, Ptype.DATA.value, payload])
 
-    # TimeoutNs = 1
-    # TimeoutSek = TimeoutNs / 1000000000
-    #
-    # tmp = []
-    # q1 = queue.Queue()
-    # t1 = time.perf_counter_ns()
-    # for i in range(1000):
-    #     q1.put(bytes(100))
-    # while True:
-    #     try:
-    #         tmp.append(q1.get(block=True, timeout=TimeoutSek))
-    #     except queue.Empty:
-    #         print(len(tmp))
-    #         break
-    # t2 = time.perf_counter_ns()
-    # timeS = (t2-t1) / 1000000000
-    # print(t2-t1)
-    # print(timeS)
 
     # time.sleep(1)
     # c.dataHandler.sendQueue.put([0, Ptype.DATA.value, b'\x01\x00\xff'])

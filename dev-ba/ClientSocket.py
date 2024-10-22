@@ -92,7 +92,6 @@ class Client(threading.Thread):
                             if dataBufferLength >= payloadLength:
                                 payload = dataBuffer[:payloadLength]
                                 self.sortPackets(payloadType, payload)
-                                #print(f"{time.perf_counter_ns()} in recv client")
                                 dataBuffer = dataBuffer[payloadLength:]
                                 dataBufferLength = len(dataBuffer)
                                 newPacket = True
@@ -122,6 +121,7 @@ class Client(threading.Thread):
                               Ptype.BYE.value]
 
         if payloadType == Ptype.DATA.value:
+            print(f"{time.perf_counter_ns()} in recv client sort packets")
             self.receiveQueue.put(payload)
         elif payloadType in acceptableCmdTypes:
             self.cmdReceiveQueue.put([payloadType, payload])
@@ -133,6 +133,7 @@ class Client(threading.Thread):
         while self.active:
             try:
                 payload = self.sendQueue.get(block=True, timeout=self.timeoutSek)
+                print(f"{time.perf_counter_ns()} client send after queue get")
                 self.sendQueue.task_done()
                 # Sync pattern (5 bytes chars)
                 header = b'\xc0\x1d\xc0\xff\xee'
@@ -149,9 +150,8 @@ class Client(threading.Thread):
                     msg = header + bytes(str(payload[1]), "utf-8")
                 else:
                     msg = header + payload[1]
-
                 self.client.send(msg)
-                #print(f"{time.perf_counter_ns()} in client send")
+                print(f"{time.perf_counter_ns()} client send after send")
             except queue.Empty:
                 pass
             except ConnectionResetError:
@@ -175,7 +175,6 @@ class Client(threading.Thread):
                     msg = header + bytes(str(payload[1]), "utf-8")
                 else:
                     msg = header + payload[1]
-
                 self.client.send(msg)
             except queue.Empty:
                 pass

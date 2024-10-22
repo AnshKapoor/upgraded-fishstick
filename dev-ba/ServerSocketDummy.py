@@ -93,6 +93,7 @@ class Server:
         acceptableCmdTypes = [Ptype.HELLO.value, Ptype.STATUS.value, Ptype.RESET.value, Ptype.CONFIG.value]
 
         if payloadType == Ptype.DATA.value:
+            print(f"{time.perf_counter_ns()} in server socket recv")
             self.dataDummyQueue.put([payloadType, payload])
         elif payloadType == Ptype.BYE.value:
             self.close()
@@ -147,7 +148,6 @@ class Server:
                             if dataBufferLength >= payloadLength:
                                 payload = dataBuffer[:payloadLength]
                                 self.sortPackets(payloadType, payload)
-                                #print(f"{time.perf_counter_ns()} in server socket recv")
                                 dataBuffer = dataBuffer[payloadLength:]
                                 dataBufferLength = len(dataBuffer)
 
@@ -163,10 +163,7 @@ class Server:
             else:
                 if dataBufferLength >= payloadLength:
                     payload = dataBuffer[:payloadLength]
-
-                    #print("Full payload received, second")
                     self.sortPackets(payloadType, payload)
-
                     dataBuffer = dataBuffer[payloadLength:]
                     dataBufferLength = len(dataBuffer)
                     newPacket = True
@@ -178,7 +175,7 @@ class Server:
     def sendMessage(self):
         """send thread for sending messages from server to client (core class)"""
         while self.active:
-            # cmd queue
+            #cmd queue
             try:
                 # Socket server sending thread looking for packets received over spw on every available channel
                 payload = self.cmdDummyQueue.get(block=True, timeout=self.timeoutSek)
@@ -225,9 +222,9 @@ class Server:
                     msg = header + bytes(str(payload[1]), "utf-8")
                 else:
                     msg = header + payload[1]
-
+                print(f"{time.perf_counter_ns()} in socket server send")
                 self.clientSocket.send(msg)
-                #print(f"{time.perf_counter_ns()} in socket server send")
+
             except queue.Empty:
                 pass
             except ConnectionResetError:

@@ -13,6 +13,6 @@ class Ptype(Enum):
 
 class Timeouts(float, Enum):
     """Timeouts for sockets and queues"""
-    TimeoutNs = 1000000
+    TimeoutNs = 1000
     TimeoutMs = TimeoutNs / 1000
     TimeoutSek = TimeoutNs / 1000000000
