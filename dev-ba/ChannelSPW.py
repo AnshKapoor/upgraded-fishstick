@@ -81,12 +81,13 @@ class ChannelSPW:
         self.channel_tx.submitTransferOperation(sendTransferOperation)
 
         # Wait for packet to be received. timeout in mS to wait for (-1) is wait indefinitely
-        status = sendTransferOperation.waitOnTransferOperationCompletion(1)
+        status = sendTransferOperation.waitOnTransferOperationCompletion(1000)
 
         # Check that packet was sent.
         if status != STAR_TRANSFER_STATUS.STAR_TRANSFER_STATUS_COMPLETE:
             print("Packet was not sent successfully.")
-        print(f"{sendItem} sent on channel {self.channelNumber}")
+
+        #print(f"{sendItem} sent on channel {self.channelNumber}")
 
     def receiveMessage(self):
         """
@@ -101,6 +102,7 @@ class ChannelSPW:
             try:
                 self.receiveQueue.put([Ptype.DATA.value, channelNumberBytes + bytes(message)], block=True,
                                       timeout=self.timeoutSek)
+                #print("received data at: ", time.perf_counter_ns() / 1000000000)
             except queue.Full:
                 print("data receive queue spw full")
         print(f"receive thread spw gone {self.channelNumber}")
@@ -115,7 +117,7 @@ class ChannelSPW:
         self.channel_rx.submitTransferOperation(receiveTransferOperation)
 
         # Wait for packet to be received. timeout in mS to wait for (-1) is wait indefinitely
-        status = receiveTransferOperation.waitOnTransferOperationCompletion(timeout=1)
+        status = receiveTransferOperation.waitOnTransferOperationCompletion(timeout=1000)
 
         # Check that valid packet was received.
         if status == STAR_TRANSFER_STATUS.STAR_TRANSFER_STATUS_COMPLETE:
@@ -126,7 +128,7 @@ class ChannelSPW:
             data = packet.getPacketData()
 
             # Print received packet.
-            print(f"{data} received on channel {self.channelNumber}")
+            #print(f"{data} received on channel {self.channelNumber}")
         else:
             # print("Did not receive valid packet.")
             data = None

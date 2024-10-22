@@ -92,6 +92,7 @@ class Client(threading.Thread):
                             if dataBufferLength >= payloadLength:
                                 payload = dataBuffer[:payloadLength]
                                 self.sortPackets(payloadType, payload)
+                                #print(f"{time.perf_counter_ns()} in recv client")
                                 dataBuffer = dataBuffer[payloadLength:]
                                 dataBufferLength = len(dataBuffer)
                                 newPacket = True
@@ -99,7 +100,7 @@ class Client(threading.Thread):
                                 newPacket = False
                             break
                         else:
-                            print("Packet Sync pattern NOT found!")
+                            #print("Packet Sync pattern NOT found!")
                             startOfPacket += 1
                             # Check for dataBufferLength is bigger than HEADERSIZE + startOfPacket
                             if dataBufferLength < HEADERSIZE + startOfPacket:
@@ -150,6 +151,7 @@ class Client(threading.Thread):
                     msg = header + payload[1]
 
                 self.client.send(msg)
+                #print(f"{time.perf_counter_ns()} in client send")
             except queue.Empty:
                 pass
             except ConnectionResetError:

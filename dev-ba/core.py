@@ -119,14 +119,43 @@ class Core:
 if __name__ == "__main__":
     """format: [ID, ptype, payload]"""
     c = Core()
+    time.sleep(0.5)
+    # c.dataHandler.sendQueue.put([0, Ptype.DATA.value, bytes(100)])
+    # while True:
+    #     c.dataHandler.sendQueue.put([0, Ptype.DATA.value, bytes(100)])
+    #     time.sleep(1)
+    for i in range(1000):
+        channel = 1
+        payload = channel.to_bytes(1, 'big')
+        payload += i.to_bytes(2, 'big')
+        c.dataHandler.sendQueue.put([0, Ptype.DATA.value, payload])
 
-    time.sleep(1)
-    c.dataHandler.sendQueue.put([0, Ptype.DATA.value, b'\x01\x00\xff'])
-    time.sleep(1)
-    c.dataHandler.sendQueue.put([0, Ptype.CONFIG.value, b'\x01\x64'])
-    time.sleep(1)
-    c.dataHandler.sendQueue.put([0, Ptype.RESET.value, b'\x00'])
-    time.sleep(1)
-    c.dataHandler.sendQueue.put([0, Ptype.STATUS.value, b'\x00'])
-    time.sleep(1)
-    c.dataHandler.sendQueue.put([0, Ptype.BYE.value, b'\x00'])
+    # TimeoutNs = 1
+    # TimeoutSek = TimeoutNs / 1000000000
+    #
+    # tmp = []
+    # q1 = queue.Queue()
+    # t1 = time.perf_counter_ns()
+    # for i in range(1000):
+    #     q1.put(bytes(100))
+    # while True:
+    #     try:
+    #         tmp.append(q1.get(block=True, timeout=TimeoutSek))
+    #     except queue.Empty:
+    #         print(len(tmp))
+    #         break
+    # t2 = time.perf_counter_ns()
+    # timeS = (t2-t1) / 1000000000
+    # print(t2-t1)
+    # print(timeS)
+
+    # time.sleep(1)
+    # c.dataHandler.sendQueue.put([0, Ptype.DATA.value, b'\x01\x00\xff'])
+    # time.sleep(1)
+    # c.dataHandler.sendQueue.put([0, Ptype.CONFIG.value, b'\x01\x64'])
+    # time.sleep(1)
+    # c.dataHandler.sendQueue.put([0, Ptype.RESET.value, b'\x00'])
+    # time.sleep(1)
+    # c.dataHandler.sendQueue.put([0, Ptype.STATUS.value, b'\x00'])
+    # time.sleep(1)
+    # c.dataHandler.sendQueue.put([0, Ptype.BYE.value, b'\x00'])

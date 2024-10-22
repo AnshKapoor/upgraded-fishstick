@@ -136,9 +136,6 @@ class Server:
                             protocolVersion = int.from_bytes(dataBuffer[startOfPacket + 5:startOfPacket + 6], 'big')
                             payloadType = int.from_bytes(dataBuffer[startOfPacket + 9:startOfPacket + 10], 'big')
 
-                            print("Packet Sync pattern found!")
-                            print(f"payloadType={Ptype(payloadType).name}")
-
                             if dataBufferLength == startOfPacket + HEADERSIZE:
                                 dataBuffer = b''
                                 dataBufferLength = 0
@@ -150,35 +147,30 @@ class Server:
                             if dataBufferLength >= payloadLength:
                                 payload = dataBuffer[:payloadLength]
                                 self.sortPackets(payloadType, payload)
+                                #print(f"{time.perf_counter_ns()} in server socket recv")
                                 dataBuffer = dataBuffer[payloadLength:]
                                 dataBufferLength = len(dataBuffer)
-                                print("-----------------------")
 
                                 newPacket = True
                             else:
                                 newPacket = False
                             break
                         else:
-                            print("Packet Sync pattern NOT found!")
-
                             startOfPacket += 1
                             # Check for dataBufferLength is bigger than HEADERSIZE + startOfPacket
                             if dataBufferLength < HEADERSIZE + startOfPacket:
                                 break
-                else:
-                    print("Packet header not completely received, waiting for more data...")
             else:
                 if dataBufferLength >= payloadLength:
                     payload = dataBuffer[:payloadLength]
 
-                    print("Full payload received, second")
+                    #print("Full payload received, second")
                     self.sortPackets(payloadType, payload)
 
                     dataBuffer = dataBuffer[payloadLength:]
                     dataBufferLength = len(dataBuffer)
                     newPacket = True
-                else:
-                    print("Payload not completely received, waiting for more data...")
+
 
         self.active = False
         print("server receive thread gone")
@@ -235,6 +227,7 @@ class Server:
                     msg = header + payload[1]
 
                 self.clientSocket.send(msg)
+                #print(f"{time.perf_counter_ns()} in socket server send")
             except queue.Empty:
                 pass
             except ConnectionResetError:

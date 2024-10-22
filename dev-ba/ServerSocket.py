@@ -147,8 +147,7 @@ class Server:
                             protocolVersion = int.from_bytes(dataBuffer[startOfPacket + 5:startOfPacket + 6], 'big')
                             payloadType = int.from_bytes(dataBuffer[startOfPacket + 9:startOfPacket + 10], 'big')
 
-                            print("Packet Sync pattern found!")
-                            print(f"payloadType={Ptype(payloadType).name}")
+                            #print(f"payloadType={Ptype(payloadType).name}")
 
                             if dataBufferLength == startOfPacket + HEADERSIZE:
                                 dataBuffer = b''
@@ -163,7 +162,6 @@ class Server:
                                 self.sortPackets(payloadType, payload)
                                 dataBuffer = dataBuffer[payloadLength:]
                                 dataBufferLength = len(dataBuffer)
-                                print("-----------------------")
 
                                 newPacket = True
                             else:
@@ -176,8 +174,8 @@ class Server:
                             # Check for dataBufferLength is bigger than HEADERSIZE + startOfPacket
                             if dataBufferLength < HEADERSIZE + startOfPacket:
                                 break
-                else:
-                    print("Packet header not completely received, waiting for more data...")
+                #else:
+                #    print("Packet header not completely received, waiting for more data...")
             else:
                 if dataBufferLength >= payloadLength:
                     payload = dataBuffer[:payloadLength]
@@ -189,8 +187,8 @@ class Server:
                     print("-----------------------")
 
                     newPacket = True
-                else:
-                    print("Payload not completely received, waiting for more data...")
+                #else:
+                #    print("Payload not completely received, waiting for more data...")
 
         self.active = False
         print("server receive thread gone")
@@ -230,8 +228,9 @@ class Server:
                 try:
                     # Socket server sending thread looking for packets received over spw on every available channel
                     payload = ch.receiveQueue.get(block=True, timeout=self.timeoutSek)
-                    print(f"server socket send {payload}")
+                    #print(f"server socket send {payload}")
                     ch.receiveQueue.task_done()
+                    #print(f"first send item serve socket: ", time.perf_counter_ns() / 1000000000)
                     # Sync pattern (5 bytes chars)
                     header = b'\xc0\x1d\xc0\xff\xee'
                     # protocol version (1 Byte uint -> 0-255)
