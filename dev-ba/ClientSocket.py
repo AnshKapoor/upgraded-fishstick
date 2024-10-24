@@ -29,13 +29,14 @@ class Client(threading.Thread):
         self.hwInterfaceType = None
         self.numChannels = None
 
-        self.timeoutSek = Timeouts.TimeoutSocketSek
+        self.timeoutSocket = Timeouts.TimeoutSocketSek
+        self.timeoutQueues = Timeouts.TimeoutSek
 
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def run(self):
         self.client.connect((self.host, self.port))
-        self.client.settimeout(self.timeoutSek)
+        self.client.settimeout(self.timeoutSocket)
 
         self.receiveThread = threading.Thread(target=self.receiveMessage, args=())
         self.receiveThread.start()
@@ -61,7 +62,7 @@ class Client(threading.Thread):
 
         while self.active:
             try:
-                receivedData = self.client.recv(4096)
+                receivedData = self.client.recv(1024)
                 if not receivedData:
                     continue
                 dataBuffer += receivedData
@@ -124,6 +125,7 @@ class Client(threading.Thread):
             #print(f"{time.perf_counter_ns()} in recv client sort packets")
             self.receiveQueue.put(payload)
         elif payloadType in acceptableCmdTypes:
+            print(payloadType)
             self.cmdReceiveQueue.put([payloadType, payload])
         else:
             print("invalid Payload type")
@@ -133,7 +135,7 @@ class Client(threading.Thread):
         while self.active:
             try:
                 #print(f"{time.perf_counter_ns()} client send before queue get")
-                payload = self.sendQueue.get(block=True, timeout=self.timeoutSek)
+                payload = self.sendQueue.get(block=True, timeout=self.timeoutQueues)
                 self.sendQueue.task_done()
                 #print(f"{payload=} in send client")
                 # Sync pattern (5 bytes chars)
@@ -165,7 +167,7 @@ class Client(threading.Thread):
                 break
 
             # try:
-            #     payload = self.cmdSendQueue.get(block=True, timeout=self.timeoutSek)
+            #     payload = self.cmdSendQueue.get(block=True, timeout=self.timeoutQueues)
             #     self.cmdSendQueue.task_done()
             #     # Sync pattern (5 bytes chars)
             #     header = b'\xc0\x1d\xc0\xff\xee'

@@ -95,6 +95,14 @@ class Core:
             client.start()
             self.clients.append(client)
 
+            # workaround for test with only one que active
+            self.clients[0].hwDevice = "BrickMk4"
+            self.clients[0].serialNumber = "123"
+            self.clients[0].hwInterfaceType = 2
+            self.clients[0].numChannels = 2
+
+            self.dataHandler.updateClients(self.clients)
+
     def loadConfig(self, inputFile="config.yaml"):
         """
         loads config file using strictyaml
@@ -125,9 +133,8 @@ if __name__ == "__main__":
     # while True:
     #     c.dataHandler.sendQueue.put([0, Ptype.DATA.value, bytes(100)])
     #     time.sleep(1)
-
-    for i in range(1000):
-        channel = 1
+    for i in range(1500):
+        channel = 2
         payload = channel.to_bytes(1, 'big')
         payload += bytes(63999)
         #payload += i.to_bytes(2, 'big')
@@ -135,7 +142,7 @@ if __name__ == "__main__":
         #time.sleep(0.000000001)
 
     time.sleep(3)
-    c.dataHandler.sendQueue.put([0, Ptype.BYE.value, b'\x00'])
+    #c.dataHandler.sendQueue.put([0, Ptype.BYE.value, b'\x00'])
 
 
     # time.sleep(1)

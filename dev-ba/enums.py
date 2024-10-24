@@ -15,5 +15,4 @@ class Timeouts(float, Enum):
     """Timeouts for sockets and queues"""
     TimeoutNs = 100
     TimeoutSek = TimeoutNs / 1000000000
-    TimeoutSocketNs = 1000000
     TimeoutSocketSek = 1

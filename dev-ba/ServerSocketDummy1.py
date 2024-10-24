@@ -14,7 +14,7 @@ class Server:
     :param int port: port of host system
     """
 
-    def __init__(self, host='127.0.0.1', port=4444):
+    def __init__(self, host='127.0.0.1', port=5555):
         self.host = host
         self.port = port
 
@@ -22,7 +22,8 @@ class Server:
 
         self.dataDummyQueue = queue.Queue()
 
-        self.timeoutSek = Timeouts.TimeoutSocketSek
+        self.timeoutSocket = Timeouts.TimeoutSocketSek
+        self.timeoutQueues = Timeouts.TimeoutSek
 
         self.time1 = 0
         self.time2 = 0
@@ -47,7 +48,7 @@ class Server:
 
         self.active = True
 
-        self.clientSocket.settimeout(self.timeoutSek)
+        self.clientSocket.settimeout(self.timeoutSocket)
 
         self.receiveThread = threading.Thread(target=self.receiveMessage, args=()).start()
         self.sendThread = threading.Thread(target=self.sendMessage, args=()).start()
@@ -121,7 +122,7 @@ class Server:
 
         while self.active:
             try:
-                receivedData = self.clientSocket.recv(4096)
+                receivedData = self.clientSocket.recv(1024)
                 if not receivedData:
                     continue
                 dataBuffer += receivedData
@@ -153,6 +154,7 @@ class Server:
                             if dataBufferLength >= payloadLength:
                                 payload = dataBuffer[:payloadLength]
                                 self.dataDummyQueue.put([payloadType, payload])
+                                #print(f"{payload=}")
                                 #print(f"to queue {payload=}\n")
                                 #print(f"{payload=} in recv server\n")
                                 #self.time1 = time.perf_counter_ns()
@@ -181,11 +183,13 @@ class Server:
 
     def sendMessage(self):
         """send thread for sending messages from server to client (core class)"""
+        print(self.timeoutQueues.value)
         while self.active:
             # data queues
             try:
                 # Socket server sending thread looking for packets received over spw on every available channel
-                payload = self.dataDummyQueue.get(block=True, timeout=self.timeoutSek)
+                payload = self.dataDummyQueue.get(block=True, timeout=self.timeoutQueues)
+                #print(time.perf_counter_ns())
                 self.dataDummyQueue.task_done()
                 #print(f"--{payload=} in server send \n")
                 # Sync pattern (5 bytes chars)
@@ -207,10 +211,7 @@ class Server:
                 self.time2 = time.perf_counter_ns()
                 #print(self.time2 - self.time1)
                 #print(f"{msg=}")
-                try:
-                    self.clientSocket.send(msg)
-                except socket.timeout:
-                    print("timeout")
+                self.clientSocket.send(msg)
                 #print(time.perf_counter_ns() - self.time2)
 
             except queue.Empty:
@@ -218,35 +219,36 @@ class Server:
             except ConnectionResetError:
                 break
 
-
             #cmd queue
-            # try:
-            #     # Socket server sending thread looking for packets received over spw on every available channel
-            #     payload = self.cmdDummyQueue.get(block=True, timeout=self.timeoutSek)
-            #     self.cmdDummyQueue.task_done()
-            #     # Sync pattern (5 bytes chars)
-            #     header = b'\xc0\x1d\xc0\xff\xee'
-            #     # protocol version (1 Byte uint -> 0-255)
-            #     header += b'\x00'
-            #     # length payload (uint -> 0-16.777.216 bytes payload)
-            #     header += len(payload[1]).to_bytes(3, 'big')
-            #     # type of payload (1 byte enum)
-            #     header += int(payload[0]).to_bytes(1, 'big')
-            #     # reserved (2 byte)
-            #     header += b'\x00\x00'
-            #
-            #     if not isinstance(payload[1], bytes):
-            #         msg = header + bytes(str(payload[1]), "utf-8")
-            #     else:
-            #         msg = header + payload[1]
-            #
-            #     self.clientSocket.send(msg)
-            # except queue.Empty:
-            #     pass
-            # except ConnectionResetError:
-            #     break
+            try:
+                #print(f"-{time.perf_counter_ns()}")
+                # Socket server sending thread looking for packets received over spw on every available channel
+                #payload = self.cmdDummyQueue.get(block=True, timeout=self.timeoutQueues)
+                payload = self.cmdDummyQueue.get(block=True, timeout=self.timeoutQueues)
+                #print(f"--{time.perf_counter_ns()}")
+                self.cmdDummyQueue.task_done()
+                # Sync pattern (5 bytes chars)
+                header = b'\xc0\x1d\xc0\xff\xee'
+                # protocol version (1 Byte uint -> 0-255)
+                header += b'\x00'
+                # length payload (uint -> 0-16.777.216 bytes payload)
+                header += len(payload[1]).to_bytes(3, 'big')
+                # type of payload (1 byte enum)
+                header += int(payload[0]).to_bytes(1, 'big')
+                # reserved (2 byte)
+                header += b'\x00\x00'
 
+                if not isinstance(payload[1], bytes):
+                    msg = header + bytes(str(payload[1]), "utf-8")
+                else:
+                    msg = header + payload[1]
 
+                self.clientSocket.send(msg)
+            except queue.Empty:
+                #print(f"---{time.perf_counter_ns()}")
+                pass
+            except ConnectionResetError:
+                break
 
         self.active = False
         print("server send thread gone")

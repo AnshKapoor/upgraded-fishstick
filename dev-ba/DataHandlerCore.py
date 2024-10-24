@@ -57,7 +57,6 @@ class DataHandler(threading.Thread):
                         counter += 1
                     else:
                         counter += 1
-                    print(counter)
                 except queue.Empty:
                     pass
         print("dh receive gone")
