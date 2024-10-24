@@ -22,7 +22,7 @@ class Server:
 
         self.dataDummyQueue = queue.Queue()
 
-        self.timeoutSek = Timeouts.TimeoutSek
+        self.timeoutSek = Timeouts.TimeoutSocketSek
 
         self.time1 = 0
         self.time2 = 0
@@ -121,13 +121,14 @@ class Server:
 
         while self.active:
             try:
-                receivedData = self.clientSocket.recv(4092)
+                receivedData = self.clientSocket.recv(4096)
                 if not receivedData:
                     continue
                 dataBuffer += receivedData
                 dataBufferLength = len(dataBuffer)
+                #print(f"------{dataBuffer=}")
             except socket.timeout:
-                continue
+                pass
             except ConnectionResetError:
                 break
 
@@ -140,25 +141,26 @@ class Server:
                             protocolVersion = int.from_bytes(dataBuffer[startOfPacket + 5:startOfPacket + 6], 'big')
                             payloadType = int.from_bytes(dataBuffer[startOfPacket + 9:startOfPacket + 10], 'big')
 
-                            if dataBufferLength == startOfPacket + HEADERSIZE:
-                                dataBuffer = b''
-                                dataBufferLength = 0
-                            else:
-                                dataBuffer = dataBuffer[startOfPacket + HEADERSIZE:]
-                                dataBufferLength = len(dataBuffer)
+                            dataBuffer = dataBuffer[startOfPacket + HEADERSIZE:]
+                            dataBufferLength = len(dataBuffer)
+
                             startOfPacket = 0
+                            newPacket = False
+
+                            #print(f"{dataBuffer=} \n")
+                            #print(f"{dataBufferLength=}  {payloadLength=} \n")
 
                             if dataBufferLength >= payloadLength:
                                 payload = dataBuffer[:payloadLength]
                                 self.dataDummyQueue.put([payloadType, payload])
-                                self.time1 = time.perf_counter_ns()
-                                print(f"{time.perf_counter_ns()} in server socket recv")
+                                #print(f"to queue {payload=}\n")
+                                #print(f"{payload=} in recv server\n")
+                                #self.time1 = time.perf_counter_ns()
+                                #print(f"{time.perf_counter_ns()} in server socket recv")
                                 dataBuffer = dataBuffer[payloadLength:]
                                 dataBufferLength = len(dataBuffer)
-
                                 newPacket = True
-                            else:
-                                newPacket = False
+                                #print(f"{dataBuffer=} after cut\n")
                             break
                         else:
                             startOfPacket += 1
@@ -169,6 +171,7 @@ class Server:
                 if dataBufferLength >= payloadLength:
                     payload = dataBuffer[:payloadLength]
                     self.dataDummyQueue.put([payloadType, payload])
+                    #print(f"to queue late {payload=}\n")
                     dataBuffer = dataBuffer[payloadLength:]
                     dataBufferLength = len(dataBuffer)
                     newPacket = True
@@ -179,6 +182,43 @@ class Server:
     def sendMessage(self):
         """send thread for sending messages from server to client (core class)"""
         while self.active:
+            # data queues
+            try:
+                # Socket server sending thread looking for packets received over spw on every available channel
+                payload = self.dataDummyQueue.get(block=True, timeout=self.timeoutSek)
+                self.dataDummyQueue.task_done()
+                #print(f"--{payload=} in server send \n")
+                # Sync pattern (5 bytes chars)
+                header = b'\xc0\x1d\xc0\xff\xee'
+                # protocol version (1 Byte uint -> 0-255)
+                header += b'\x00'
+                # length payload (uint -> 0-16.777.216 bytes payload)
+                header += len(payload[1]).to_bytes(3, 'big')
+                # type of payload (1 byte enum)
+                header += int(payload[0]).to_bytes(1, 'big')
+                # reserved (2 byte)
+                header += b'\x00\x00'
+
+                if not isinstance(payload[1], bytes):
+                    msg = header + bytes(str(payload[1]), "utf-8")
+                else:
+                    msg = header + payload[1]
+                #print(f"{time.perf_counter_ns()} in socket server send")
+                self.time2 = time.perf_counter_ns()
+                #print(self.time2 - self.time1)
+                #print(f"{msg=}")
+                try:
+                    self.clientSocket.send(msg)
+                except socket.timeout:
+                    print("timeout")
+                #print(time.perf_counter_ns() - self.time2)
+
+            except queue.Empty:
+                pass
+            except ConnectionResetError:
+                break
+
+
             #cmd queue
             # try:
             #     # Socket server sending thread looking for packets received over spw on every available channel
@@ -206,36 +246,7 @@ class Server:
             # except ConnectionResetError:
             #     break
 
-            # data queues
-            try:
-                # Socket server sending thread looking for packets received over spw on every available channel
-                payload = self.dataDummyQueue.get(block=True, timeout=self.timeoutSek)
-                self.dataDummyQueue.task_done()
-                # Sync pattern (5 bytes chars)
-                header = b'\xc0\x1d\xc0\xff\xee'
-                # protocol version (1 Byte uint -> 0-255)
-                header += b'\x00'
-                # length payload (uint -> 0-16.777.216 bytes payload)
-                header += len(payload[1]).to_bytes(3, 'big')
-                # type of payload (1 byte enum)
-                header += int(payload[0]).to_bytes(1, 'big')
-                # reserved (2 byte)
-                header += b'\x00\x00'
 
-                if not isinstance(payload[1], bytes):
-                    msg = header + bytes(str(payload[1]), "utf-8")
-                else:
-                    msg = header + payload[1]
-                print(f"{time.perf_counter_ns()} in socket server send")
-                self.time2 = time.perf_counter_ns()
-                print(self.time2 - self.time1)
-                self.clientSocket.send(msg)
-                print(time.perf_counter_ns() - self.time2)
-
-            except queue.Empty:
-                pass
-            except ConnectionResetError:
-                break
 
         self.active = False
         print("server send thread gone")

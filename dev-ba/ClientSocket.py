@@ -29,7 +29,7 @@ class Client(threading.Thread):
         self.hwInterfaceType = None
         self.numChannels = None
 
-        self.timeoutSek = Timeouts.TimeoutSek
+        self.timeoutSek = Timeouts.TimeoutSocketSek
 
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -71,6 +71,8 @@ class Client(threading.Thread):
             except ConnectionResetError:
                 self.cmdReceiveQueue.put([Ptype.BYE.value, b'\x00'])
                 break
+            except OSError:
+                break
 
             if newPacket:
                 if dataBufferLength >= HEADERSIZE:
@@ -81,13 +83,14 @@ class Client(threading.Thread):
                             protocolVersion = int.from_bytes(dataBuffer[startOfPacket + 5:startOfPacket + 6], 'big')
                             payloadType = int.from_bytes(dataBuffer[startOfPacket + 9:startOfPacket + 10], 'big')
 
-                            if dataBufferLength == startOfPacket + HEADERSIZE:
-                                dataBuffer = b''
-                                dataBufferLength = 0
-                            else:
-                                dataBuffer = dataBuffer[startOfPacket + HEADERSIZE:]
-                                dataBufferLength = len(dataBuffer)
+                            dataBuffer = dataBuffer[startOfPacket + HEADERSIZE:]
+                            dataBufferLength = len(dataBuffer)
+
                             startOfPacket = 0
+                            newPacket = False
+
+                            #print(f"{dataBuffer=}\n")
+                            #print(f"{dataBufferLength=}  {payloadLength=}\n")
 
                             if dataBufferLength >= payloadLength:
                                 payload = dataBuffer[:payloadLength]
@@ -95,11 +98,8 @@ class Client(threading.Thread):
                                 dataBuffer = dataBuffer[payloadLength:]
                                 dataBufferLength = len(dataBuffer)
                                 newPacket = True
-                            else:
-                                newPacket = False
                             break
                         else:
-                            #print("Packet Sync pattern NOT found!")
                             startOfPacket += 1
                             # Check for dataBufferLength is bigger than HEADERSIZE + startOfPacket
                             if dataBufferLength < HEADERSIZE + startOfPacket:
@@ -119,9 +119,9 @@ class Client(threading.Thread):
         """..."""
         acceptableCmdTypes = [Ptype.HELLO.value, Ptype.STATUS.value, Ptype.RESET.value, Ptype.CONFIG.value,
                               Ptype.BYE.value]
-
+        #print(f"{payload=} in client sort packets")
         if payloadType == Ptype.DATA.value:
-            print(f"{time.perf_counter_ns()} in recv client sort packets")
+            #print(f"{time.perf_counter_ns()} in recv client sort packets")
             self.receiveQueue.put(payload)
         elif payloadType in acceptableCmdTypes:
             self.cmdReceiveQueue.put([payloadType, payload])
@@ -132,9 +132,10 @@ class Client(threading.Thread):
         """send thread for socket communication, sending from client to server"""
         while self.active:
             try:
+                #print(f"{time.perf_counter_ns()} client send before queue get")
                 payload = self.sendQueue.get(block=True, timeout=self.timeoutSek)
-                print(f"{time.perf_counter_ns()} client send after queue get")
                 self.sendQueue.task_done()
+                #print(f"{payload=} in send client")
                 # Sync pattern (5 bytes chars)
                 header = b'\xc0\x1d\xc0\xff\xee'
                 # protocol version (1 Byte uint -> 0-255)
@@ -150,36 +151,42 @@ class Client(threading.Thread):
                     msg = header + bytes(str(payload[1]), "utf-8")
                 else:
                     msg = header + payload[1]
-                self.client.send(msg)
-                print(f"{time.perf_counter_ns()} client send after send")
+                try:
+                    self.client.send(msg)
+                except socket.timeout:
+                    print("timed out")
+                    pass
+
+                # print(f"{msg=} in send client")
+                # print(f"{time.perf_counter_ns()} client send after send")
             except queue.Empty:
                 pass
             except ConnectionResetError:
                 break
 
-            try:
-                payload = self.cmdSendQueue.get(block=True, timeout=self.timeoutSek)
-                self.cmdSendQueue.task_done()
-                # Sync pattern (5 bytes chars)
-                header = b'\xc0\x1d\xc0\xff\xee'
-                # protocol version (1 Byte uint -> 0-255)
-                header += b'\x00'
-                # length payload (uint -> 0-16.777.216 bytes payload)
-                header += len(payload[1]).to_bytes(3, 'big')
-                # type of payload (1 byte enum)
-                header += payload[0].to_bytes(1, 'big')
-                # reserved (2 byte)
-                header += b'\x00\x00'
-
-                if not isinstance(payload[1], bytes):
-                    msg = header + bytes(str(payload[1]), "utf-8")
-                else:
-                    msg = header + payload[1]
-                self.client.send(msg)
-            except queue.Empty:
-                pass
-            except ConnectionResetError:
-                break
+            # try:
+            #     payload = self.cmdSendQueue.get(block=True, timeout=self.timeoutSek)
+            #     self.cmdSendQueue.task_done()
+            #     # Sync pattern (5 bytes chars)
+            #     header = b'\xc0\x1d\xc0\xff\xee'
+            #     # protocol version (1 Byte uint -> 0-255)
+            #     header += b'\x00'
+            #     # length payload (uint -> 0-16.777.216 bytes payload)
+            #     header += len(payload[1]).to_bytes(3, 'big')
+            #     # type of payload (1 byte enum)
+            #     header += payload[0].to_bytes(1, 'big')
+            #     # reserved (2 byte)
+            #     header += b'\x00\x00'
+            #
+            #     if not isinstance(payload[1], bytes):
+            #         msg = header + bytes(str(payload[1]), "utf-8")
+            #     else:
+            #         msg = header + payload[1]
+            #     self.client.send(msg)
+            # except queue.Empty:
+            #     continue
+            # except ConnectionResetError:
+            #     break
 
         self.active = False
         print("client send thread gone")

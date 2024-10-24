@@ -126,11 +126,16 @@ if __name__ == "__main__":
     #     c.dataHandler.sendQueue.put([0, Ptype.DATA.value, bytes(100)])
     #     time.sleep(1)
 
-    for i in range(1):
+    for i in range(1000):
         channel = 1
         payload = channel.to_bytes(1, 'big')
-        payload += bytes(2000)
+        payload += bytes(63999)
+        #payload += i.to_bytes(2, 'big')
         c.dataHandler.sendQueue.put([0, Ptype.DATA.value, payload])
+        #time.sleep(0.000000001)
+
+    time.sleep(3)
+    c.dataHandler.sendQueue.put([0, Ptype.BYE.value, b'\x00'])
 
 
     # time.sleep(1)

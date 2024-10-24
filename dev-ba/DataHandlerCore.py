@@ -39,20 +39,25 @@ class DataHandler(threading.Thread):
                 try:
                     payload = cl.receiveQueue.get(block=True, timeout=self.timeoutSek)
                     cl.receiveQueue.task_done()
+                    #print(f"{payload=} in dh receive")
                     timestamp = self.createTimestamp()
-                    print(f"{time.perf_counter_ns()} in recv dh before queue\n")
+                    #print(f"{time.perf_counter_ns()} in recv dh before queue\n")
                     self.receiveQueue.put([cl.ID, Ptype.DATA.value, timestamp, payload])
-                    print(f"{time.perf_counter_ns()} in recv dh after queue\n")
-                    self.timeEnd = time.perf_counter_ns()
-                    print(f"{((self.timeEnd - self.startTime) / 1000000)}")
-                    if counter == 99:
+                    #print(f"{time.perf_counter_ns()} in recv dh after queue\n")
+                    #self.timeEnd = time.perf_counter_ns()
+                    #print(f"{((self.timeEnd - self.startTime) / 1000000)}")
+                    #print(counter)
+                    if counter == 999:
+                        print(f"{time.perf_counter_ns()} in dh recv")
                         self.timeEnd = time.perf_counter_ns()
                         duration = self.timeEnd - self.startTime
                         perPacket = duration / (counter + 1)
                         print(duration / 1000000000)
-                        print(perPacket / 1000000000)
+                        print(f"Time elapsed per packet: {perPacket / 1000000} mS")
+                        counter += 1
                     else:
                         counter += 1
+                    print(counter)
                 except queue.Empty:
                     pass
         print("dh receive gone")
@@ -66,6 +71,8 @@ class DataHandler(threading.Thread):
             try:
                 item = self.sendQueue.get(block=True, timeout=self.timeoutSek)
                 self.sendQueue.task_done()
+                #print(f"{item=} in dh send")
+                #print(f"{time.perf_counter_ns()} in dh send after get")
                 ID = item[0]
                 ptype = item[1]
                 payload = item[2]
@@ -75,13 +82,14 @@ class DataHandler(threading.Thread):
                             self.startTime = time.perf_counter_ns()
                             print(f"{time.perf_counter_ns()} in dh send")
                             self.firstPkt = False
+                        #print(f"{time.perf_counter_ns()} in dh send before queue")
                         self.clients[ID].sendQueue.put([ptype, payload])
-                        print(f"{time.perf_counter_ns()} in dh send after queue")
+                        #print(f"{time.perf_counter_ns()} in dh send after queue")
                         # special case when shutting down the server, this way the client is also shut down
                     case Ptype.BYE.value:
                         print("shutting down...")
                         self.clients[ID].cmdSendQueue.put([ptype, payload])
-                        time.sleep(0.1)
+                        time.sleep(2)
                         self.core.close()
                     case _:
                         self.clients[ID].cmdSendQueue.put([ptype, payload])
