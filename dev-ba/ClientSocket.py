@@ -73,7 +73,7 @@ class Client(threading.Thread):
 
             if newPacket:
                 if dataBufferLength >= HEADERSIZE:
-                    while True:
+                    while newPacket and dataBufferLength >= HEADERSIZE:
                         # Check for sync pattern
                         if dataBuffer[startOfPacket:startOfPacket + 5] == b'\xc0\x1d\xc0\xff\xee':
                             payloadLength = int.from_bytes(dataBuffer[startOfPacket + 6:startOfPacket + 9], 'big')
@@ -96,7 +96,7 @@ class Client(threading.Thread):
                                 newPacket = True
                             else:
                                 newPacket = False
-                            break
+                            #break
                         else:
                             print("Packet Sync pattern NOT found!")
                             startOfPacket += 1

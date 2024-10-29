@@ -128,7 +128,7 @@ class Server:
 
             if newPacket:
                 if dataBufferLength >= HEADERSIZE:
-                    while True:
+                    while newPacket and dataBufferLength >= HEADERSIZE:
                         # Check for sync pattern
                         if dataBuffer[startOfPacket:startOfPacket + 5] == b'\xc0\x1d\xc0\xff\xee':
                             payloadLength = int.from_bytes(dataBuffer[startOfPacket + 6:startOfPacket + 9], 'big')
@@ -147,7 +147,7 @@ class Server:
                                 dataBuffer = dataBuffer[payloadLength:]
                                 dataBufferLength = len(dataBuffer)
                                 newPacket = True
-                            break
+                            #break
                         else:
                             startOfPacket += 1
                             # Check for dataBufferLength is bigger than HEADERSIZE + startOfPacket

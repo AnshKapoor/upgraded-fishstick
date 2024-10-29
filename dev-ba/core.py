@@ -127,6 +127,12 @@ if __name__ == "__main__":
 
     time.sleep(1)
 
+    # for i in range(10):
+    #     payload = b'\x01'
+    #     payload += str(i).encode("utf-8")
+    #     #payload += bytes(2000)
+    #     c.dataHandler.sendQueue.put([0, Ptype.DATA.value, payload])
+
     # test of all available packet types
     time.sleep(2)
     c.dataHandler.sendQueue.put([0, Ptype.DATA.value, b'\x01\x00\xff'])
