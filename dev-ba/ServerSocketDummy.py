@@ -166,7 +166,6 @@ class Server:
 
     def sendMessage(self):
         """send thread for sending messages from server to client (core class)"""
-        print(self.timeoutQueues.value)
         while self.active:
             # data queues
             try:
