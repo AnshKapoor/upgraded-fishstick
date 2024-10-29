@@ -50,7 +50,7 @@ class ChannelSPW:
     def setTransmissionRate(self, bitRateMbitSec):
         # set transmission speed
         self.link.setTransmitSignallingRate(bitRateMbitSec)
-        print(f" \nset signaling rate to {bitRateMbitSec} Mbit / s on channel {self.channelNumber} \n")
+        print(f"Set signaling rate to {bitRateMbitSec} Mbit/s on channel {self.channelNumber} \n")
 
     def sendMessage(self):
         """

@@ -10,7 +10,7 @@ from SpacewireConnection import Spacewire
 
 class Server:
     """
-    TCP type Socket server
+    TCP type Socket server, most stable and main result of the thesis.
     :param str host: IPV4 address of host system
     :param int port: port of host system
     """
@@ -93,12 +93,12 @@ class Server:
         self.spw = Spacewire()
         payloadHello = self.spw.Hello()
 
-        # type of packet, payload
-        #self.cmdSendQueue.put([Ptype.HELLO.value, payloadHello])
+        # normal case
+        self.cmdSendQueue.put([Ptype.HELLO.value, payloadHello])
 
         # workaround for only using one queue
-        msg = bytes(str(Ptype.HELLO.value), 'utf-8') + payloadHello
-        self.clientSocket.send(msg)
+        #msg = bytes(str(Ptype.HELLO.value), 'utf-8') + payloadHello
+        #self.clientSocket.send(msg)
 
         print("Hello packet sent")
 
@@ -122,7 +122,7 @@ class Server:
         self.active = False
         time.sleep(0.1)
         self.spw.close()
-        time.sleep(0.2)
+        time.sleep(2)
         self.clientSocket.close()
 
     def receiveMessage(self):
@@ -153,8 +153,6 @@ class Server:
                             payloadLength = int.from_bytes(dataBuffer[startOfPacket + 6:startOfPacket + 9], 'big')
                             protocolVersion = int.from_bytes(dataBuffer[startOfPacket + 5:startOfPacket + 6], 'big')
                             payloadType = int.from_bytes(dataBuffer[startOfPacket + 9:startOfPacket + 10], 'big')
-
-                            #print(f"payloadType={Ptype(payloadType).name}")
 
                             dataBuffer = dataBuffer[startOfPacket + HEADERSIZE:]
                             dataBufferLength = len(dataBuffer)
@@ -190,40 +188,38 @@ class Server:
         """send thread for sending messages from server to client (core class)"""
         while self.active:
             # cmd queue
-            # try:
-            #     # Socket server sending thread looking for packets received over spw on every available channel
-            #     payload = self.cmdSendQueue.get(block=True, timeout=self.timeoutQueues)
-            #     self.cmdSendQueue.task_done()
-            #     # Sync pattern (5 bytes chars)
-            #     header = b'\xc0\x1d\xc0\xff\xee'
-            #     # protocol version (1 Byte uint -> 0-255)
-            #     header += b'\x00'
-            #     # length payload (uint -> 0-16.777.216 bytes payload)
-            #     header += len(payload[1]).to_bytes(3, 'big')
-            #     # type of payload (1 byte enum)
-            #     header += int(payload[0]).to_bytes(1, 'big')
-            #     # reserved (2 byte)
-            #     header += b'\x00\x00'
-            #
-            #     if not isinstance(payload[1], bytes):
-            #         msg = header + bytes(str(payload[1]), "utf-8")
-            #     else:
-            #         msg = header + payload[1]
-            #
-            #     self.clientSocket.send(msg)
-            # except queue.Empty:
-            #     pass
-            # except ConnectionResetError:
-            #     break
+            try:
+                # Socket server sending thread looking for packets received over spw on every available channel
+                payload = self.cmdSendQueue.get(block=True, timeout=self.timeoutQueues)
+                self.cmdSendQueue.task_done()
+                # Sync pattern (5 bytes chars)
+                header = b'\xc0\x1d\xc0\xff\xee'
+                # protocol version (1 Byte uint -> 0-255)
+                header += b'\x00'
+                # length payload (uint -> 0-16.777.216 bytes payload)
+                header += len(payload[1]).to_bytes(3, 'big')
+                # type of payload (1 byte enum)
+                header += int(payload[0]).to_bytes(1, 'big')
+                # reserved (2 byte)
+                header += b'\x00\x00'
+
+                if not isinstance(payload[1], bytes):
+                    msg = header + bytes(str(payload[1]), "utf-8")
+                else:
+                    msg = header + payload[1]
+
+                self.clientSocket.send(msg)
+            except queue.Empty:
+                pass
+            except ConnectionResetError:
+                break
 
             # data queues
             for ch in self.spw.channels:
                 try:
                     # Socket server sending thread looking for packets received over spw on every available channel
                     payload = ch.receiveQueue.get(block=True, timeout=self.timeoutQueues)
-                    #print(f"server socket send {payload}")
                     ch.receiveQueue.task_done()
-                    #print(f"first send item serve socket: ", time.perf_counter_ns() / 1000000000)
                     # Sync pattern (5 bytes chars)
                     header = b'\xc0\x1d\xc0\xff\xee'
                     # protocol version (1 Byte uint -> 0-255)

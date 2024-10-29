@@ -64,9 +64,10 @@ class Spacewire:
         return payloadAnswer
 
     def resetHw(self):
+        """resets connected device, using STAR-System API function"""
         try:
             self.firstDevice.resetDevice()
-            print("--Device reset successfully")
+            print("Device reset successfully")
             # 01 for success
             payloadAnswer = b'\x01'
         except STARAPIError as err:
@@ -76,6 +77,7 @@ class Spacewire:
         return payloadAnswer
 
     def getStatus(self):
+        """returns the name of the connected device or b'\x00', if no device is connected."""
         self.getDeviceInfo()
         if self.firstDevice is not None:
             return self.deviceName.encode('utf-8')

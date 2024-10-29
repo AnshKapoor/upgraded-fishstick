@@ -8,7 +8,7 @@ from enums import Timeouts
 
 
 class Client(threading.Thread):
-    """Main Client Socket, designed to work with SpaceWire"""
+    """socket type client, modified for test with only one queue. """
     def __init__(self, host, port, ID):
         super(Client, self).__init__()
         self.receiveThread = None
@@ -29,14 +29,14 @@ class Client(threading.Thread):
         self.hwInterfaceType = None
         self.numChannels = None
 
-        self.timeoutSek = Timeouts.TimeoutSek
+        self.timeoutSocket = Timeouts.TimeoutSocketSek
+        self.timeoutQueues = Timeouts.TimeoutSek
 
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def run(self):
-        """startup procedure for ClientSocket, creating TCP connection and communication threads"""
         self.client.connect((self.host, self.port))
-        self.client.settimeout(self.timeoutSek)
+        self.client.settimeout(self.timeoutSocket)
 
         self.receiveThread = threading.Thread(target=self.receiveMessage, args=())
         self.receiveThread.start()
@@ -45,7 +45,6 @@ class Client(threading.Thread):
         self.sendThread.start()
 
     def close(self):
-        """shuts down communication threads, afterward the socket"""
         self.active = False
         time.sleep(0.1)
         self.client.close()
@@ -62,13 +61,15 @@ class Client(threading.Thread):
             try:
                 receivedData = self.client.recv(1024)
                 if not receivedData:
-                    break
+                    continue
                 dataBuffer += receivedData
                 dataBufferLength = len(dataBuffer)
             except socket.timeout:
                 continue
             except ConnectionResetError:
                 self.cmdReceiveQueue.put([Ptype.BYE.value, b'\x00'])
+                break
+            except OSError:
                 break
 
             if newPacket:
@@ -80,13 +81,11 @@ class Client(threading.Thread):
                             protocolVersion = int.from_bytes(dataBuffer[startOfPacket + 5:startOfPacket + 6], 'big')
                             payloadType = int.from_bytes(dataBuffer[startOfPacket + 9:startOfPacket + 10], 'big')
 
-                            if dataBufferLength == startOfPacket + HEADERSIZE:
-                                dataBuffer = b''
-                                dataBufferLength = 0
-                            else:
-                                dataBuffer = dataBuffer[startOfPacket + HEADERSIZE:]
-                                dataBufferLength = len(dataBuffer)
+                            dataBuffer = dataBuffer[startOfPacket + HEADERSIZE:]
+                            dataBufferLength = len(dataBuffer)
+
                             startOfPacket = 0
+                            newPacket = False
 
                             if dataBufferLength >= payloadLength:
                                 payload = dataBuffer[:payloadLength]
@@ -94,11 +93,8 @@ class Client(threading.Thread):
                                 dataBuffer = dataBuffer[payloadLength:]
                                 dataBufferLength = len(dataBuffer)
                                 newPacket = True
-                            else:
-                                newPacket = False
                             break
                         else:
-                            print("Packet Sync pattern NOT found!")
                             startOfPacket += 1
                             # Check for dataBufferLength is bigger than HEADERSIZE + startOfPacket
                             if dataBufferLength < HEADERSIZE + startOfPacket:
@@ -115,10 +111,9 @@ class Client(threading.Thread):
         print("client receive thread gone")
 
     def sortPackets(self, payloadType, payload):
-        """sorts packets by their enum Ptype to the corresponding queues"""
+        """sort incoming packets by type to """
         acceptableCmdTypes = [Ptype.HELLO.value, Ptype.STATUS.value, Ptype.RESET.value, Ptype.CONFIG.value,
                               Ptype.BYE.value]
-
         if payloadType == Ptype.DATA.value:
             self.receiveQueue.put(payload)
         elif payloadType in acceptableCmdTypes:
@@ -127,11 +122,10 @@ class Client(threading.Thread):
             print("invalid Payload type")
 
     def sendMessage(self):
-        """send thread for socket communication, sending from client to server by checking """
+        """send thread for socket communication, sending from client to server"""
         while self.active:
-            # check data queue for available items
             try:
-                payload = self.sendQueue.get(block=True, timeout=self.timeoutSek)
+                payload = self.sendQueue.get(block=True, timeout=self.timeoutQueues)
                 self.sendQueue.task_done()
                 # Sync pattern (5 bytes chars)
                 header = b'\xc0\x1d\xc0\xff\xee'
@@ -148,38 +142,40 @@ class Client(threading.Thread):
                     msg = header + bytes(str(payload[1]), "utf-8")
                 else:
                     msg = header + payload[1]
+                try:
+                    self.client.send(msg)
+                except socket.timeout:
+                    print("timed out")
+                    pass
 
-                self.client.send(msg)
             except queue.Empty:
                 pass
             except ConnectionResetError:
                 break
 
-            # check cmd queue for available items
-            try:
-                payload = self.cmdSendQueue.get(block=True, timeout=self.timeoutSek)
-                self.cmdSendQueue.task_done()
-                # Sync pattern (5 bytes chars)
-                header = b'\xc0\x1d\xc0\xff\xee'
-                # protocol version (1 Byte uint -> 0-255)
-                header += b'\x00'
-                # length payload (uint -> 0-16.777.216 bytes payload)
-                header += len(payload[1]).to_bytes(3, 'big')
-                # type of payload (1 byte enum)
-                header += payload[0].to_bytes(1, 'big')
-                # reserved (2 byte)
-                header += b'\x00\x00'
-
-                if not isinstance(payload[1], bytes):
-                    msg = header + bytes(str(payload[1]), "utf-8")
-                else:
-                    msg = header + payload[1]
-
-                self.client.send(msg)
-            except queue.Empty:
-                pass
-            except ConnectionResetError:
-                break
+            # try:
+            #     payload = self.cmdSendQueue.get(block=True, timeout=self.timeoutQueues)
+            #     self.cmdSendQueue.task_done()
+            #     # Sync pattern (5 bytes chars)
+            #     header = b'\xc0\x1d\xc0\xff\xee'
+            #     # protocol version (1 Byte uint -> 0-255)
+            #     header += b'\x00'
+            #     # length payload (uint -> 0-16.777.216 bytes payload)
+            #     header += len(payload[1]).to_bytes(3, 'big')
+            #     # type of payload (1 byte enum)
+            #     header += payload[0].to_bytes(1, 'big')
+            #     # reserved (2 byte)
+            #     header += b'\x00\x00'
+            #
+            #     if not isinstance(payload[1], bytes):
+            #         msg = header + bytes(str(payload[1]), "utf-8")
+            #     else:
+            #         msg = header + payload[1]
+            #     self.client.send(msg)
+            # except queue.Empty:
+            #     continue
+            # except ConnectionResetError:
+            #     break
 
         self.active = False
         print("client send thread gone")

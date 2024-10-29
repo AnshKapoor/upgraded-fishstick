@@ -1,5 +1,5 @@
 connections:
   spacewire:
-    brickmk4Dummy0:
+    brickmk4:
       host: '127.0.0.1'
-      port: 3333
+      port: 4444

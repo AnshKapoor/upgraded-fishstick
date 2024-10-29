@@ -1,34 +1,30 @@
 import queue
 import threading
-import strictyaml
-import path
 import time
 
-from ClientSocket import Client
+import path
+import strictyaml
+
+from ClientSocket_modified import Client
 from DataHandlerCore import DataHandler
 from enums import Ptype
 from enums import Timeouts
 
 
 class Core:
-    """
-    Core class for managing all Clients, Datahandler and the whole creation and startup procedure.
-    All actions are based on the config.yaml file in the same directory.
-    """
+    """Modified version of the Core class for testing with one queue only, with i.e. fixed HELLO packet."""
     def __init__(self):
         self.parsedConfig = {}
         self.clients = []
         self.dataHandler = DataHandler(self)
         self.timeoutSek = Timeouts.TimeoutSek
-        self.main()
         self.active = True
+        self.main()
 
     def main(self):
-        """startup procedure for the core class"""
         self.loadConfig()
         self.dataHandler.start()
         self.createClients()
-        self.active = True
         threading.Thread(target=self.cmdManagingThread, args=()).start()
 
     def cmdManagingThread(self):
@@ -62,26 +58,27 @@ class Core:
 
                         case Ptype.CONFIG.value:
                             if item[1] == b'\x01':
-                                print("configuration successfully completed\n")
+                                print("configuration successfully completed")
                             elif item[1] == b'\x00':
-                                print("configuration failed\n")
+                                print("configuration failed")
 
                         case Ptype.STATUS.value:
                             if item[1] == b'\x00':
-                                print("no device connected\n")
+                                print("no device connected")
                             else:
-                                print(f"{item[1]}\n")
+                                print(item[1])
 
                         case Ptype.RESET.value:
                             if item[1] == b'\x01':
-                                print("device successfully reset\n")
+                                print("device successfully reset")
                             elif item[1] == b'\x00':
-                                print("reset failed\n")
+                                print("reset failed")
 
                         case Ptype.BYE.value:
-                            print("bye packet received, shutting down\n")
+                            print("bye packet received, shutting down")
                             self.close()
                             break
+
                         case _:
                             print("invalid packet format")
                 except queue.Empty:
@@ -97,6 +94,14 @@ class Core:
             client = Client(host, port, ID)
             client.start()
             self.clients.append(client)
+
+            # workaround for test with only one que active
+            self.clients[0].hwDevice = "BrickMk4"
+            self.clients[0].serialNumber = "123"
+            self.clients[0].hwInterfaceType = 2
+            self.clients[0].numChannels = 2
+
+            self.dataHandler.updateClients(self.clients)
 
     def loadConfig(self, inputFile="config.yaml"):
         """
@@ -114,7 +119,6 @@ class Core:
         self.parsedConfig = strictyaml.load(path.Path(inputFile).read_text(), schema).data
 
     def close(self):
-        """shuts down the core itself, its Datahandler and Clients"""
         for cl in self.clients:
             cl.close()
         self.dataHandler.close()
@@ -124,18 +128,23 @@ class Core:
 if __name__ == "__main__":
     """format: [ID, ptype, payload]"""
     c = Core()
+    time.sleep(0.5)
 
-    time.sleep(1)
+    #while True:
+    for i in range(2):
+        channel = 2
+        payload = channel.to_bytes(1, 'big')
+        payload += str(i).encode('utf-8')
+        print(payload)
+        c.dataHandler.sendQueue.put([0, Ptype.DATA.value, payload])
 
-    # test of all available packet types
-    time.sleep(2)
-    c.dataHandler.sendQueue.put([0, Ptype.DATA.value, b'\x01\x00\xff'])
-    print("sent \\x01\\x00\\xff, with 1 being the send channel")
-    time.sleep(2)
-    c.dataHandler.sendQueue.put([0, Ptype.CONFIG.value, b'\x01\x64'])
-    time.sleep(2)
-    c.dataHandler.sendQueue.put([0, Ptype.RESET.value, b'\x00'])
-    time.sleep(2)
-    c.dataHandler.sendQueue.put([0, Ptype.STATUS.value, b'\x00'])
-    time.sleep(2)
-    c.dataHandler.sendQueue.put([0, Ptype.BYE.value, b'\x00'])
+    # time.sleep(1)
+    # c.dataHandler.sendQueue.put([0, Ptype.DATA.value, b'\x01\x00\xff'])
+    # time.sleep(1)
+    # c.dataHandler.sendQueue.put([0, Ptype.CONFIG.value, b'\x01\x64'])
+    # time.sleep(1)
+    # c.dataHandler.sendQueue.put([0, Ptype.RESET.value, b'\x00'])
+    # time.sleep(1)
+    # c.dataHandler.sendQueue.put([0, Ptype.STATUS.value, b'\x00'])
+    # time.sleep(1)
+    # c.dataHandler.sendQueue.put([0, Ptype.BYE.value, b'\x00'])
