@@ -258,6 +258,7 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
             tmpPacketDataBuffer = [random.randint(0, 255) for _ in range(packetSizes)]
             self.appendToPacketDataBuffer(tmpPacketDataBuffer)
             self.send_testing()
+            # TODO Check if this should really be blocking the main thread
             self.spw.spw_waitEvent()
         print("testing done")
 

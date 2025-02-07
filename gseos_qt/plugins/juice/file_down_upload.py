@@ -113,10 +113,13 @@ class FileDownUploadWidget(WidgetWithExtension, Recordable):
 
         self.make_settings_btn(self.settingsButton)
 
+        # TODO This might be a problem as the dialog keeps reappearing as the ActivationListener gets activated from the result of the file selection
         self.manual_deletes.add(ActivationListener(
             self.down_local_input,
             lambda: select_file(self._filename_down.set, self.filepath_down.parent.absolute, create_new=True)
         ))
+
+        # TODO This might be a problem as the dialog keeps reappearing as the ActivationListener gets activated from the result of the file selection
         self.manual_deletes.add(ActivationListener(
             self.up_local_input,
             lambda: select_file(self._filename_up.set, self.filepath_up.parent.absolute)
@@ -186,8 +189,11 @@ class FileDownUploadWidget(WidgetWithExtension, Recordable):
     def _update_inputs(self, *_, **kwargs):
         if kwargs.get('init', False):
             return
+        # TODO Check why File Selection Dialog keeps reappearing
+        # TODO Check why filename down is reset when filename_up is set to new value
+        # TODO Check why clicking on right field in UP to DPU sets the left fields value
         self.down_local_input.setText(".../" + self.filename_down)
-        self.up_local_input.setText(".../" + self.filename_up)
+        self.up_local_input.setText(".../" + self.filename_up) # Up to DPU / Down from GSE left
         self.down_remote_input.setText(self.filename_down_dpu.value)
         self.up_remote_input.setText(self.filename_up_dpu.value)
 

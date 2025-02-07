@@ -576,7 +576,8 @@ class SpaceWireBrickMk4(ISpaceWireBridge):
                       'Received Packets in Bytes']
 
         # Schreiben der Daten in die CSV-Datei
-        with open(file_path, mode='a', newline='') as file:
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        with open(file_path, mode='a+', newline='') as file:
             writer = csv.DictWriter(file, fieldnames=fieldnames)
 
             # Überprüfen, ob die Datei leer ist, um die Spaltenüberschriften zu schreiben
