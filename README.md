@@ -7,15 +7,24 @@ The first steps of GSpy development were implemented in three bachelor's theses:
 
 GSpy aims to support current Windows Operating Systemes, Linux support might be of interest for the further development, but is not a priority.
 
+## Requirements
+- Python
+
+## Installation
+- Install Python 3.13
+- create venv: C:\Users\<user>\AppData\Local\Programs\Python\Python313\python.exe" -m venv venv
+- update pip (in venv dir): python.exe -m pip install --upgrade pip
+- install dependencies into venv: pip install stectyaml
+
 # GSpy Next
 GSpy Next has been developed in a bachlors thesis in 2024. It is build on a network-focussed approach, where hardware-accessing components are accessible through a TCP network connection and a custom binary protocol. There are currently few features implemented, but the approach might prove to be advantageous when orchestrating more complex test setups where devices connected to different PCs might be controlled. Additionally, the networking approch allows for isolation of concerns through multiprocessing on a single machine.
 
-* GSpy Next might prove to be an appropriate basis for further development. It contains few features and would need to be structured appropriately for extensions to be well-isolated and structured. There is currectly no graphical user interface. This opens the chance to isolate the UI properly from the program logic to allow for separation of concerns and possibly an additional command line interface for advanced automation. *
+_GSpy Next might prove to be an appropriate basis for further development. It contains few features and would need to be structured appropriately for extensions to be well-isolated and structured. There is currectly no graphical user interface. This opens the chance to isolate the UI properly from the program logic to allow for separation of concerns and possibly an additional command line interface for advanced automation._
 
 # GSpy Classic
 GSpy Classic is a Python and Qt based, extensible graphic application providing features to interact with the SpaceWire Brick Mk4, a serial console for controlling a laboratory power supply and an SPI connector Box (Onyx SPI) for communication to the on-board power supply. GSpy Classic integrates all features into a single application meaning all external components need to be connected to the same control PC.
 
-* While GSpy Classic offers many features and a good-looking graphical user interface, there are stability problems affecting the software and the code might result difficult to maintain. The plugin system will be required to be refactored to be compatible with Python versions from Python 3.12. The last supported Python 3.11 will have end-of-life in 2027-10. The Qt5 Framework used for the graphical interface had public EOL in 2023, extended lifecycle ends May 2025, so an upgrade will also be required. The architecture of the software will probably lead to many complicated problems regarding the use of correct threading to avoid blocking the graphical user interface. Comprehensive testing will be required if the development of this solution should be continued.*
+_While GSpy Classic offers many features and a good-looking graphical user interface, there are stability problems affecting the software and the code might result difficult to maintain. The plugin system will be required to be refactored to be compatible with Python versions from Python 3.12. The last supported Python 3.11 will have end-of-life in 2027-10. The Qt5 Framework used for the graphical interface had public EOL in 2023, extended lifecycle ends May 2025, so an upgrade will also be required. The architecture of the software will probably lead to many complicated problems regarding the use of correct threading to avoid blocking the graphical user interface. Comprehensive testing will be required if the development of this solution should be continued._
 
 
 ## Requirements
