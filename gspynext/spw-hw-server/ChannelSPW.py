@@ -2,8 +2,8 @@ import queue
 import threading
 import time
 
-from enums import Ptype
-from enums import Timeouts
+from gspynext.common.enums import Ptype
+from gspynext.common.enums import Timeouts
 
 from STAR_system.data_chunk import DataChunk
 from STAR_system.link_port import LinkPort

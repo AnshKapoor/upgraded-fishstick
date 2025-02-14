@@ -6,8 +6,8 @@ import time
 
 from ClientSocket import Client
 from DataHandlerCore import DataHandler
-from enums import Ptype
-from enums import Timeouts
+from gspynext.common.enums import Ptype
+from gspynext.common.enums import Timeouts
 
 
 class Core:

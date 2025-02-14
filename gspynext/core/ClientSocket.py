@@ -3,8 +3,8 @@ import threading
 import queue
 import time
 
-from enums import Ptype
-from enums import Timeouts
+from gspynext.common.enums import Ptype
+from gspynext.common.enums import Timeouts
 
 
 class Client(threading.Thread):

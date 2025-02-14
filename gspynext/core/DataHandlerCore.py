@@ -1,8 +1,8 @@
 import queue
 import threading
 import time
-from enums import Ptype
-from enums import Timeouts
+from gspynext.common.enums import Ptype
+from gspynext.common.enums import Timeouts
 
 
 class DataHandler(threading.Thread):
