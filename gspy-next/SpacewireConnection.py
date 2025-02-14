@@ -28,6 +28,10 @@ class Spacewire:
     def getDeviceInfo(self):
         self.firstDevice = getFirstDevice()
 
+        if self.firstDevice == None:
+            print("No SpaceWire device found.")
+            raise IOError("No SpaceWire device found.")
+
         # get available data channels of connected device
         channels = self.firstDevice.getChannels()
         if channels:

@@ -7,19 +7,41 @@ The first steps of GSpy development were implemented in three bachelor's theses:
 
 GSpy aims to support current Windows Operating Systemes, Linux support might be of interest for the further development, but is not a priority.
 
+# GSpy Next
+GSpy Next has been developed in a bachlors thesis in 2024. It is build on a network-focussed approach, where hardware-accessing components are accessible through a TCP network connection and a custom binary protocol. There are currently few features implemented, but the approach might prove to be advantageous when orchestrating more complex test setups where devices connected to different PCs might be controlled. Additionally, the networking approch allows for isolation of concerns through multiprocessing on a single machine.
+
+_GSpy Next might prove to be an appropriate basis for further development. It contains few features and would need to be structured appropriately for extensions to be well-isolated and structured. There is currectly no graphical user interface. This opens the chance to isolate the UI properly from the program logic to allow for separation of concerns and possibly an additional command line interface for advanced automation._
+
 ## Requirements
 - Python
 
 ## Installation
 - Install Python 3.13
+- Change cmd directory to appropriate program folder
 - create venv: C:\Users\<user>\AppData\Local\Programs\Python\Python313\python.exe" -m venv venv
 - update pip (in venv dir): python.exe -m pip install --upgrade pip
-- install dependencies into venv: pip install stectyaml
+- install dependencies into venv: pip install strictyaml path numpy dill
 
-# GSpy Next
-GSpy Next has been developed in a bachlors thesis in 2024. It is build on a network-focussed approach, where hardware-accessing components are accessible through a TCP network connection and a custom binary protocol. There are currently few features implemented, but the approach might prove to be advantageous when orchestrating more complex test setups where devices connected to different PCs might be controlled. Additionally, the networking approch allows for isolation of concerns through multiprocessing on a single machine.
+## Configuration
+- GSpy Next Core is configured through the config.yaml file
+  - The ServerSocket by default binds to 127.0.0.1 Port 4444
+  - The ServerSocketDummy by default binds to 127.0.0.1 Port 5555
 
-_GSpy Next might prove to be an appropriate basis for further development. It contains few features and would need to be structured appropriately for extensions to be well-isolated and structured. There is currectly no graphical user interface. This opens the chance to isolate the UI properly from the program logic to allow for separation of concerns and possibly an additional command line interface for advanced automation._
+## Startup
+- Connect USB Space Wire Brick
+- Start Server Socket: python3 ServerSocket.py
+- Start GSpy Client Core: python3 core.py
+
+## Open Work
+- Error Signalisation through the Network Socket
+- Error Message when no Server is available
+- Check if protocol is appropriate and well-specified
+- Implement any useful functionality for the client side.
+- Make Tool stop on terminate signal
+
+## Development
+- PyCharm can be used for Development
+- With Python 3.13 use at least PyCharm 2024.3, older versions will cause issues
 
 # GSpy Classic
 GSpy Classic is a Python and Qt based, extensible graphic application providing features to interact with the SpaceWire Brick Mk4, a serial console for controlling a laboratory power supply and an SPI connector Box (Onyx SPI) for communication to the on-board power supply. GSpy Classic integrates all features into a single application meaning all external components need to be connected to the same control PC.
@@ -34,6 +56,7 @@ _While GSpy Classic offers many features and a good-looking graphical user inter
   - Update regarding module loading would be required for 3.12ff
 - Python Windows Embeddable package may be used to avoid systemwide installation
 - Qt development environment
+- Install Scripts are outdated, use the process from this README instead
 
 ## Installation into venv
 - Create a venv for the project based on Python 3.11
