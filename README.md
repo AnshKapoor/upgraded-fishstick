@@ -78,3 +78,23 @@ The connection to the laborytory power supply uses a standard serial connection.
 
 ### Onyx SPI
 The integration of the Onyx SPI connector is dependent on .NET .dll files and uses them to communicate to the device. Almost surely, this feature is incompatible with Linux.
+
+## TODOs:
+
+### 06-03-2025
+
+1. Renovate the GUI from classic version to next version
+	- Migrate to python 3.13 (module loading -> packages approach)
+	- Use PyQt v6 for the new version 
+2. Separation of GUI, Interfaces and datahandling (read,write and generate)
+3. First data recording form SpW protocol
+4. Decoding SpW protocol 
+5. User interface for decoding 
+6. Create a system test - loop-testing using two spw-bricks
+7. Testing with the tesbed from Rui-FGPA
+
+
+a. SpW
+b. SPI Power Supply
+c. Laboratory power supply   
+d. Grasp Bridge  (check support in the classic version)
