@@ -84,17 +84,18 @@ The integration of the Onyx SPI connector is dependent on .NET .dll files and us
 ### 06-03-2025
 
 1. Renovate the GUI from classic version to next version
-	- Migrate to python 3.13 (module loading -> packages approach)
-	- Use PyQt v6 for the new version 
-2. Separation of GUI, Interfaces and datahandling (read,write and generate)
-3. First data recording form SpW protocol
+	- Migrate to Python 3.13 (module loading -> packages approach)
+	- Use PyQt v6 for new version 
+2. Separate GUI, interfaces and data handling (read,write and generate)
+3. First data logging from SpW protocol
 4. Decoding SpW protocol 
 5. User interface for decoding 
-6. Create a system test - loop-testing using two spw-bricks
-7. Testing with the tesbed from Rui-FGPA
+6. Creating a System Test - Loop Test Using Two SpW Devices
+7. Testing with the testbed from Rui-FGPA
 
 
-a. SpW
-b. SPI Power Supply
-c. Laboratory power supply   
-d. Grasp Bridge  (check support in the classic version)
+i. SpW
+ii. SPI power supply
+iii. Laboratory Power Supply   
+iv. Gresb bridge  
+	- Check support in classic version
