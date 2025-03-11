@@ -93,9 +93,9 @@ The integration of the Onyx SPI connector is dependent on .NET .dll files and us
 6. Creating a System Test - Loop Test Using Two SpW Devices
 7. Testing with the testbed from Rui-FGPA
 
-
-i. SpW
-ii. SPI power supply
-iii. Laboratory Power Supply   
-iv. Gresb bridge  
-	- Check support in classic version
+---
+* SpW
+* SPI power supply
+* Laboratory Power Supply   
+* Gresb bridge  
+	* Check support in classic version
