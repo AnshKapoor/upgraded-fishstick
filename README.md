@@ -99,3 +99,11 @@ The integration of the Onyx SPI connector is dependent on .NET .dll files and us
 * Laboratory Power Supply   
 * Gresb bridge  
 	* Check support in classic version
+
+
+### 14-03-2025
+
+The figure below illustrates the first block structure for the latest version of GSpy.
+
+![GSPy block structure](figures/gspy_blocks.png)
+
