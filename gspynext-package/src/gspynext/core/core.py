@@ -4,8 +4,8 @@ import strictyaml
 import path
 import time
 
-from ClientSocket import Client
-from DataHandlerCore import DataHandler
+from .ClientSocket import Client
+from .DataHandlerCore import DataHandler
 from gspynext.common.enums import Ptype
 from gspynext.common.enums import Timeouts
 
