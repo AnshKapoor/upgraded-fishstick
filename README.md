@@ -93,14 +93,14 @@ The integration of the Onyx SPI connector is dependent on .NET .dll files and us
 6. Creating a System Test - Loop Test Using Two SpW Devices
 7. Testing with the testbed from Rui-FGPA
 
----
+
 * SpW
 * SPI power supply
 * Laboratory Power Supply   
 * Gresb bridge  
 	* Check support in classic version
 
-
+---
 ### 14-03-2025
 
 The figure below illustrates the first block structure for the latest version of GSpy.
