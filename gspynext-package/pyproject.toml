@@ -18,7 +18,11 @@ classifiers = [
 ]
 license = {text = "BSD license"}
 dependencies = [
-  "typer"
+  "typer",
+  "strictyaml>=1.3.0",
+  "path>=16.0.0",
+  "numpy>=1.21.0",
+  "dill>=0.3.3"
 ]
 
 [project.optional-dependencies]
