@@ -1,7 +1,7 @@
 import queue
 
-from .ChannelSPW import ChannelSPW
-from .util import getFirstDevice
+from ChannelSPW import ChannelSPW
+from util import getFirstDevice
 
 from STAR_system.STAR_exceptions import STARAPIError
 

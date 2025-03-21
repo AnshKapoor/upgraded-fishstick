@@ -5,7 +5,7 @@ import time
 
 from gspynext.common.enums import Ptype
 from gspynext.common.enums import Timeouts
-from .SpacewireConnection import Spacewire
+from SpacewireConnection import Spacewire
 
 
 class Server:
@@ -246,5 +246,5 @@ class Server:
         print("server send thread gone")
 
 
-# if __name__ == "__main__":
-#     server = Server()
+if __name__ == "__main__":
+    server = Server()

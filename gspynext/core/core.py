@@ -4,8 +4,8 @@ import strictyaml
 import path
 import time
 
-from .ClientSocket import Client
-from .DataHandlerCore import DataHandler
+from ClientSocket import Client
+from DataHandlerCore import DataHandler
 from gspynext.common.enums import Ptype
 from gspynext.common.enums import Timeouts
 
@@ -121,27 +121,27 @@ class Core:
         self.active = False
 
 
-# if __name__ == "__main__":
-#     """format: [ID, ptype, payload]"""
-#     c = Core()
+if __name__ == "__main__":
+    """format: [ID, ptype, payload]"""
+    c = Core()
 
-#     time.sleep(1)
+    time.sleep(1)
 
-#     # for i in range(10):
-#     #     payload = b'\x01'
-#     #     payload += str(i).encode("utf-8")
-#     #     #payload += bytes(2000)
-#     #     c.dataHandler.sendQueue.put([0, Ptype.DATA.value, payload])
+    # for i in range(10):
+    #     payload = b'\x01'
+    #     payload += str(i).encode("utf-8")
+    #     #payload += bytes(2000)
+    #     c.dataHandler.sendQueue.put([0, Ptype.DATA.value, payload])
 
-#     # test of all available packet types
-#     time.sleep(2)
-#     c.dataHandler.sendQueue.put([0, Ptype.DATA.value, b'\x01\x00\xff'])
-#     print("sent \\x01\\x00\\xff, with 1 being the send channel")
-#     time.sleep(2)
-#     c.dataHandler.sendQueue.put([0, Ptype.CONFIG.value, b'\x01\x64'])
-#     time.sleep(2)
-#     c.dataHandler.sendQueue.put([0, Ptype.RESET.value, b'\x00'])
-#     time.sleep(2)
-#     c.dataHandler.sendQueue.put([0, Ptype.STATUS.value, b'\x00'])
-#     time.sleep(2)
-#     c.dataHandler.sendQueue.put([0, Ptype.BYE.value, b'\x00'])
+    # test of all available packet types
+    time.sleep(2)
+    c.dataHandler.sendQueue.put([0, Ptype.DATA.value, b'\x01\x00\xff'])
+    print("sent \\x01\\x00\\xff, with 1 being the send channel")
+    time.sleep(2)
+    c.dataHandler.sendQueue.put([0, Ptype.CONFIG.value, b'\x01\x64'])
+    time.sleep(2)
+    c.dataHandler.sendQueue.put([0, Ptype.RESET.value, b'\x00'])
+    time.sleep(2)
+    c.dataHandler.sendQueue.put([0, Ptype.STATUS.value, b'\x00'])
+    time.sleep(2)
+    c.dataHandler.sendQueue.put([0, Ptype.BYE.value, b'\x00'])
