@@ -246,5 +246,5 @@ class Server:
         print("server send thread gone")
 
 
-if __name__ == "__main__":
-    server = Server()
+# if __name__ == "__main__":
+#     server = Server()
