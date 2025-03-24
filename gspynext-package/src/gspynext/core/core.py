@@ -9,6 +9,8 @@ from .DataHandlerCore import DataHandler
 from gspynext.common.enums import Ptype
 from gspynext.common.enums import Timeouts
 
+import importlib.resources
+
 
 class Core:
     """
@@ -98,7 +100,7 @@ class Core:
             client.start()
             self.clients.append(client)
 
-    def loadConfig(self, inputFile="config.yaml"):
+    def loadConfig(self):
         """
         loads config file using strictyaml
         :param str inputFile: filename of yaml configuration file, needs to be in the same directory
@@ -111,7 +113,8 @@ class Core:
                 }))
             })
         })
-        self.parsedConfig = strictyaml.load(path.Path(inputFile).read_text(), schema).data
+        with importlib.resources.open_text(__package__, "config.yaml") as f:
+            self.parsedConfig = strictyaml.load(f.read(), schema).data
 
     def close(self):
         """shuts down the core itself, its Datahandler and Clients"""
