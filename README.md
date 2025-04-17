@@ -114,7 +114,6 @@ Environment:
 - Python 3.13
 - Windows, Linux or even macOS
 - PyQT 6
-- DejaVu Sans Mono Font installed
 
 The Basic GSpy GUI without any plugins does contain a detachable log window and a console.
 
@@ -127,3 +126,14 @@ exit - Seems to do nothing
 
 It would be useful to open this console to provide specific commands in plugins.
 Currently, however this does not seem to be implemented.
+
+## Resource Bundle
+To build the ressource bundle used for things such as logos and images, the qt rcc compiler is needed.
+macOS: brew install qt
+
+A comprehensive ressource bundle should include all fonts used in the application:
+- Source Code Pro
+- DejaVu Sans Mono
+- ...
+
+To make a proper open-source version of the software, the licenses of the fonts must be checked and the fonts replaced if required.
