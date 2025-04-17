@@ -1,21 +1,20 @@
 import os
 from PyQt6 import QtCore, QtWidgets, QtGui, uic
 from PyQt6.QtGui import QStandardItem, QStandardItemModel, QIcon
-from PyQt6.QtCore import pyqtSignal
 from contextlib import suppress
 from typing import *
 
-from gseos_qt.utils.misc import Extendable
-from gseos_qt.utils.widget import call_in_main_thread, event_name
-from .emptywidget import EmptyWidget
-from .bottomwidget import BottomWidget
-from .drophint import DropHint
-from .utils.widget import async_in_main_thread, ResizeListener, PaintListener
-from .utils.recorder import RecorderWindow, Recorder
-from . import COMPANY, PRODUCT
-import gseos_qt.globalvars as glob
+from branding import *
+from utils.misc import Extendable
+from utils.widget import call_in_main_thread, event_name
+from widgets.emptywidget import EmptyWidget
+from widgets.bottomwidget import BottomWidget
+from widgets.drophint import DropHint
+from utils.widget import async_in_main_thread, ResizeListener, PaintListener
+from utils.recorder import RecorderWindow, Recorder
 
-glob.Recorder = Recorder()
+global recorder
+recorder = Recorder()
 MAIN_FILE_PATH = None
 
 
@@ -254,7 +253,7 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         self.tree_dock = None
         self.tree_widget = None  # type: QtWidgets.QTreeView
         self.background_tasks = []
-        self.windows = []  # type: QtWidgets.QMainWindow[]
+        self.windows: List[QtWidgets.QMainWindow] = []
         self.setCorner(QtCore.Qt.BottomLeftCorner, QtCore.Qt.LeftDockWidgetArea)
         self.ui = uic.loadUi("ui/mainwindow.ui", self)
         self.setWindowTitle(PRODUCT)
@@ -377,7 +376,8 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
             self.re_open(["--restore-settings"])
 
     def _read_settings(self):
-        settings = glob.Settings = QtCore.QSettings(COMPANY, PRODUCT)
+        global settings
+        settings = QtCore.QSettings(COMPANY, PRODUCT)
         self.initialized = True
         QtCore.QTimer(self).singleShot(1, self.show)
         try:
@@ -496,7 +496,8 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         self.bottom_dock.setWidget(self.bottom_widget)
         self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.bottom_dock)
         self.message_handler = MessageHandler(self.bottom_widget.textBrowser)
-        glob.Recorder.set_message_handler(self.message_handler)
+        global recorder
+        return recorder.set_message_handler(self.message_handler)
 
         # TODO on restore panels from view crashes here
         self.load_plugins()
@@ -514,7 +515,11 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.tree_dock)
 
     def load_plugins(self, plugins=None, package="plugins"):
-        from . import plugins as p
+        pass
+        """
+        PLugin Loading must be refactored to allow separation of plugins into separate packages
+        
+        import plugins as p
         import pkgutil
         import importlib
         importlib.import_module(package)
@@ -522,7 +527,7 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         loaded_plugin_names = []  # To store the names of loaded plugins
 
         if plugins is None:
-            self.kill_tasks()
+           self.kill_tasks()
 
             n = self.load_plugins(pkgutil.iter_modules(p.__path__))
             self.message_handler.info("%s plugins loaded." % n)
@@ -553,8 +558,13 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         #    print(f"Loaded plugin {i}: {plugin_name}")
             
         return n
+        """
 
     def load_screens(self):
+        pass
+        """
+        This must be handled differently to allow for screens to be loaded from independent packages
+        
         from . import screens
         import pkgutil
 
@@ -563,6 +573,7 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
 
         for importer, module_name, is_pkg in pkgutil.iter_modules(screens.__path__):
             model.appendRow(self.module_to_item(importer, module_name, is_pkg, package="screens"))
+        """
 
     def module_to_item(self, importer, module_name, is_package, package=__package__):
         import pkgutil

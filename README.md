@@ -107,3 +107,23 @@ The figure below illustrates the first block structure for the latest version of
 
 ![GSPy block structure](figures/gspy_blocks.png)
 
+# GSpy-GUI
+The GSpy GUI package contains a miminum working version of the GUI environment aiming to be a foundation for a new plugin loading system.
+
+Environment:
+- Python 3.13
+- Windows, Linux or even macOS
+- PyQT 6
+- DejaVu Sans Mono Font installed
+
+The Basic GSpy GUI without any plugins does contain a detachable log window and a console.
+
+## Console in GSpy
+The console is a Widget that is provided by consolewidget.py. 
+It currently exposes the following commands:
+shell <command> - Execute a command using the system shell
+exec <statement> - Execute a python statement
+exit - Seems to do nothing
+
+It would be useful to open this console to provide specific commands in plugins.
+Currently, however this does not seem to be implemented.
