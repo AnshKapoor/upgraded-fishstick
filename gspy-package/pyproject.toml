@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gspy"
-version = "0.0.1"
+version = "0.1.0"
 description = "GSpy contains python software for verification of space instruments."
 readme = "README.rst"
 authors = [
@@ -33,6 +33,17 @@ dev = [
     "ruff"  # linting
 ]
 
+gui = [
+    "PyQt6>=6.6",           # pulls in PyQt6‑Qt6 and PyQt6‑sip automatically
+
+    # 2‑D/3‑D real‑time plotting that works with PyQt6
+    "pyqtgraph>=0.13",        # 0.13+ has full PyQt6 support
+    # FontAwesome / Material‑style icons for Qt (QtPy‑based, Qt6‑ready)
+    "qtawesome>=1.4.0"
+]
+
+
+
 [project.urls]
 
 bugs = "https://github.com/none/gspynext/issues"
@@ -42,10 +53,15 @@ homepage = "https://github.com/none/gspynext"
 [tool.setuptools]
 package-dir = {"" = "src"}
 
-[tool.setuptools.package-data]
-"*" = ["*.*"]
+# [project.optional-dependencies]
+# gui = ["PySide6>=6.6"]
 
+# --- entry‑points ---------------------------------------
+[project.gui-scripts]           # Creates a clickable launcher on Windows/macOS
+gspy-gui = "gspy.gui.main:run"
 
+# [project.scripts]               # (optional) CLI utilities
+# gspy-cli = "gspy.cli:main"
 
 
 # Mypy
