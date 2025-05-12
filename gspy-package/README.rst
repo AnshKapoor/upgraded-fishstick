@@ -37,4 +37,5 @@ Installation
 Demo GUI
 --------
 
-.. note:: A screenshot or animated demo of the GUI should be included here.
+.. image:: figures/gspy-gui-demo12May.png
+   :width: 600
