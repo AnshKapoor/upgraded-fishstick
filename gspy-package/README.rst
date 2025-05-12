@@ -2,20 +2,20 @@
 GSpy Python Package
 ====================
 
-.. image:: https://img.shields.io/pypi/v/gspynext.svg
-   :target: https://pypi.python.org/pypi/gspynext
+.. image:: https://img.shields.io/pypi/v/gspyegse.svg
+   :target: https://pypi.python.org/pypi/gspyegse
 
-.. image:: https://img.shields.io/travis/none/gspynext.svg
-   :target: https://travis-ci.com/none/gspynext
+.. image:: https://img.shields.io/travis/none/gspyegse.svg
+   :target: https://travis-ci.com/none/gspyegse
 
-.. image:: https://readthedocs.org/projects/gspynext/badge/?version=latest
-   :target: https://gspynext.readthedocs.io/en/latest/?version=latest
+.. image:: https://readthedocs.org/projects/gspyegse/badge/?version=latest
+   :target: https://gspyegse.readthedocs.io/en/latest/?version=latest
    :alt: Documentation Status
 
 GSpy is a Python package for the verification of space instruments.
 
 - Free software: BSD License
-- Documentation: https://gspynext.readthedocs.io
+- Documentation: https://gspy-egse.readthedocs.io
 
 Installation
 ------------
