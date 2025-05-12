@@ -23,8 +23,27 @@ GSpy contains python software for verification of space instruments.
 * Documentation: https://gspynext.readthedocs.io.
  
 
-Features
+Installation
+-------------
+
+1. Clone this repository.
+2. Create and activate a new python virtual environment for installing the 'gspy-egse' 
+3. From the root folder of the cloned repo, run 
+
+```
+pip install .[gui]
+```
+
+4. After installtion finish, you run the gspy-egse gui using:
+
+```
+gspy-egse-gui
+```
+
+Demo GUI
 --------
 
-* TODO
+THE PICTURE GOES HERE!
+
+
 

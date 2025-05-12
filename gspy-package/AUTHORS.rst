@@ -5,7 +5,7 @@ Credits
 Development Lead
 ----------------
 
-* GSpy IDA Team <gspy@ida-team.de>
+* GSpy IDA Team <gpsy-egse@ida-team.de>
 
 Contributors
 ------------

@@ -4,14 +4,14 @@ from PyQt6.QtGui import QStandardItem, QStandardItemModel, QIcon
 from contextlib import suppress
 from typing import *
 
-from gspy.gui.branding import *
-from gspy.gui.utils.misc import Extendable
-from gspy.gui.utils.widget import call_in_main_thread, event_name
-from gspy.gui.widgets.emptywidget import EmptyWidget
-from gspy.gui.widgets.bottomwidget import BottomWidget
-from gspy.gui.widgets.drophint import DropHint
-from gspy.gui.utils.widget import async_in_main_thread, ResizeListener, PaintListener
-from gspy.gui.utils.recorder import RecorderWindow, Recorder
+from gspy_egse.gui.branding import *
+from gspy_egse.gui.utils.misc import Extendable
+from gspy_egse.gui.utils.widget import call_in_main_thread, event_name
+from gspy_egse.gui.widgets.emptywidget import EmptyWidget
+from gspy_egse.gui.widgets.bottomwidget import BottomWidget
+from gspy_egse.gui.widgets.drophint import DropHint
+from gspy_egse.gui.utils.widget import async_in_main_thread, ResizeListener, PaintListener
+from gspy_egse.gui.utils.recorder import RecorderWindow, Recorder
 
 global recorder
 recorder = Recorder()
@@ -254,7 +254,7 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         self.background_tasks = []
         self.windows: List[QtWidgets.QMainWindow] = []
         self.setCorner(QtCore.Qt.BottomLeftCorner, QtCore.Qt.LeftDockWidgetArea)
-        self.ui = uic.loadUi("src/gspy/gui/ui/mainwindow.ui", self)
+        self.ui = uic.loadUi("src/gspy_egse/gui/ui/mainwindow.ui", self)
         self.setWindowTitle(PRODUCT)
         self.stackedWidget = QtWidgets.QStackedWidget()
         self.setCentralWidget(self.stackedWidget)

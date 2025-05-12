@@ -1,4 +1,4 @@
-# src/gspy/gui/main.py
+# src/gspy_egse/gui/main.py
 import os, platform, sys
 from typing import List
 from contextlib import suppress
@@ -6,16 +6,16 @@ from contextlib import suppress
 def run(argv: List[str] | None = None) -> None:
     """
     GUI entry‑point for the `gspy-gui` launcher *and*
-    for direct execution via `python -m gspy.gui.main`.
+    for direct execution via `python -m gspy_egse.gui.main`.
     """
     if argv is None:                     # called by setuptools wrapper
         argv = sys.argv
 
     # -- lazy imports keep startup time minimal ----------------------------
-    from gspy.gui.branding import COMPANY, PRODUCT, VERSION_STR
+    from gspy_egse.gui.branding import COMPANY, PRODUCT, VERSION_STR
     from PyQt6 import QtWidgets, QtGui
-    from gspy.gui.mainwindow import MyMainWindow
-    from gspy.gui.utils.widget import CusIcon, delay_in_main_thread
+    from gspy_egse.gui.mainwindow import MyMainWindow
+    from gspy_egse.gui.utils.widget import CusIcon, delay_in_main_thread
     from PyQt6.QtCore import QT_VERSION_STR, PYQT_VERSION_STR
 
     # Windows per‑application taskbar ID
@@ -48,6 +48,6 @@ def run(argv: List[str] | None = None) -> None:
 
     sys.exit(app.exec())
 
-# Optional convenience for `python -m gspy.gui.main`
+# Optional convenience for `python -m gspy_egse.gui.main`
 if __name__ == "__main__":
     run()

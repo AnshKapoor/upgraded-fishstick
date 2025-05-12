@@ -1,5 +1,5 @@
 """Console script for gspynext."""
-import gspy
+import gspy_egse
 
 import typer
 from rich.console import Console

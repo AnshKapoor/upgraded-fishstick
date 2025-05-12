@@ -3,15 +3,15 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "gspy"
+name = "gpsy-egse"
 version = "0.1.0"
 description = "GSpy contains python software for verification of space instruments."
 readme = "README.rst"
 authors = [
-  {name = "GSpy IDA Team", email = "gspy@ida-team.de"}
+  {name = "GSpy IDA Team", email = "gpsy-egse@ida-team.de"}
 ]
 maintainers = [
-  {name = "GSpy IDA Team", email = "gspy@ida-team.de"}
+  {name = "GSpy IDA Team", email = "gpsy-egse@ida-team.de"}
 ]
 classifiers = [
 
@@ -58,10 +58,10 @@ package-dir = {"" = "src"}
 
 # --- entry‑points ---------------------------------------
 [project.gui-scripts]           # Creates a clickable launcher on Windows/macOS
-gspy-gui = "gspy.gui.main:run"
+gspy-egse-gui = "gspy_egse.gui.main:run"
 
 # [project.scripts]               # (optional) CLI utilities
-# gspy-cli = "gspy.cli:main"
+# gspy-egse-cli = "gspy_egse.cli:main"
 
 
 # Mypy
