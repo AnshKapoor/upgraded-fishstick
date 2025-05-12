@@ -1,6 +1,6 @@
-====================
-GSpy Python Package
-====================
+========================
+GSpy-egse Python Package
+========================
 
 .. image:: https://img.shields.io/pypi/v/gspyegse.svg
    :target: https://pypi.python.org/pypi/gspyegse
