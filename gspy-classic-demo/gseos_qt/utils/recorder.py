@@ -1,5 +1,6 @@
 import time
 import qtawesome as qta
+import gseos_qt.globalvars as glob
 import copy
 import pickle
 import gzip
@@ -12,7 +13,7 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
 from functools import wraps
 from contextlib import suppress
-from .misc import WrappedMessageHandler, call_async
+from gseos_qt.utils.misc import WrappedMessageHandler, call_async
 
 RECORDING_FILTER = "GSpy Recording (*.gspy)"
 
@@ -58,17 +59,16 @@ class RecorderWindow(QMainWindow):
         recorder.finished.connect(self.finished)
         recorder.recording_changed.connect(self.on_new_recording)
 
-        global settings
         self.action_save.triggered.connect(lambda: select_file(
             self.save_file,
             type_filter=RECORDING_FILTER,
-            path=settings.value("record_path", "."),
+            path=glob.Settings.value("record_path", "."),
             create_new=True
         ))
         self.action_load.triggered.connect(lambda: select_file(
             self.load_file,
             type_filter=RECORDING_FILTER,
-            path=settings.value("record_path", ".")
+            path=glob.Settings.value("record_path", ".")
         ))
 
         self.record_name.textChanged.connect(self.update_name)
@@ -76,7 +76,7 @@ class RecorderWindow(QMainWindow):
         self.list_record.setModel(recorder.record_items_model)
         self.on_new_recording()
         with suppress(Exception):
-            self.restoreGeometry(settings.value("recorder_geometry", None))
+            self.restoreGeometry(glob.Settings.value("recorder_geometry", None))
 
         self.status_label = QLabel("Start or Load Recording", self)
         self.statusbar.addPermanentWidget(self.status_label, 1)
@@ -96,7 +96,7 @@ class RecorderWindow(QMainWindow):
         with gzip.open(file, 'wb') as f:
             pickle.dump(recorder.recording.to_dump(), f)
 
-        settings.setValue("record_path", os.path.dirname(file))
+        glob.Settings.setValue("record_path", os.path.dirname(file))
         recorder.m_h.info("File saved. (%d Steps)" % len(recorder.recording.recordings))
 
     @pyqtSlot(str)
@@ -106,7 +106,7 @@ class RecorderWindow(QMainWindow):
             dump = pickle.load(f)
         recorder.set_recording(Recording.from_dump(dump))
 
-        settings.setValue("record_path", os.path.dirname(file))
+        glob.Settings.setValue("record_path", os.path.dirname(file))
         recorder.m_h.info("File loaded. (%d Steps)" % len(recorder.recording.recordings))
 
     def on_new_recording(self):
@@ -114,13 +114,15 @@ class RecorderWindow(QMainWindow):
         self.record_name.setText(recorder.recording.name)
 
     def closeEvent(self, *args, **kwargs):
-        settings.setValue("recorder_geometry", self.saveGeometry())
+        global recorder
+        glob.Settings.setValue("recorder_geometry", self.saveGeometry())
         recorder.m_h = recorder.m_h.original
         self.deleteLater()
         QMainWindow.closeEvent(self, *args, **kwargs)
 
     @pyqtSlot()
     def record_click(self):
+        global recorder
         if recorder.is_recording:
             self.record.setIcon(qta.icon("fa.circle", color="red"))
             self.play.setEnabled(True)
@@ -239,10 +241,14 @@ class Recordable:
             self.recorder_register()
 
     def recorder_register(self):
+        global recorder
+        if not "recorder" in globals():
+            recorder = Recorder()
         recorder.register_instance(self.__class__, self.cls_name, self, self.instance_name, self.singleton)
 
     @property
     def playing_back(self) -> bool:
+        global recorder
         return recorder.is_playing_back
 
     def play_back(self, action: PlayAction):
