@@ -525,79 +525,91 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         self.tree_dock.setWidget(self.tree_widget)
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.tree_dock)
 
-    def load_plugins(self, plugins=None, package="plugins"):
-        pass
-        
-        # # PLugin Loading must be refactored to allow separation of plugins into separate packages
-        
-        # import gspy_egse.gui.plugins as p
-        # import pkgutil
-        # import importlib
-        # importlib.import_module(package)
-        
-        # loaded_plugin_names = []  # To store the names of loaded plugins
+    
+    def load_plugins(self, plugin_path=None, package="gspy_egse.gui.plugins"):
+        import importlib
+        import importlib.resources
+        import logging
 
-        # if plugins is None:
-        #     self.kill_tasks()
-        #     n = self.load_plugins(pkgutil.iter_modules(p.__path__))
-        #     self.message_handler.info("%s plugins loaded." % n)
-        #     return
-        # n = 0
-        # for importer, module_name, is_pkg in plugins:
-        #     if is_pkg:
-        #         path = p.__path__[0]
-        #         path = os.path.join(path, module_name)
-        #         path = [path]
-        #         loaded_plugin_names.append(package + "." + module_name)  # Store loaded plugin name
+        loaded_plugin_names = []
+        n = 0
 
-        #         n += self.load_plugins(pkgutil.iter_modules(path), package + "." + module_name)
+        logging.debug(f"Loading plugins from package: {package}")
+        try:
+            base_path = importlib.resources.files(importlib.import_module(package))
+            logging.debug(f"Resolved path: {base_path}")
+        except Exception as e:
+            logging.error(f"Could not resolve package path: {e}")
+            return 0
 
-        #     else:
-        #         n += 1
-        #         module_ = importlib.import_module(package + "." + module_name, package=package)
-        #         loaded_plugin_names.append(package + "." + module_name)  # Store loaded plugin name
-        #         try:
-        #             tasks = module_.BACKGROUND_TASKS
-        #         except AttributeError:
-        #             tasks = []
-        #         for Task in tasks:
-        #             self.background_tasks.append(Task(self))
-                    
-        # # Print loaded plugin names and their order
-        # # for i, plugin_name in enumerate(loaded_plugin_names, 1):
-        # #    print(f"Loaded plugin {i}: {plugin_name}")
-        # return n
-        
+        for entry in base_path.iterdir():
+            logging.debug(f"Found entry: {entry.name}")
+            if not entry.name.endswith(".py") or entry.name.startswith("_"):
+                logging.debug(f"Skipping: {entry.name}")
+                continue
+
+            module_name = entry.stem
+            full_module_name = f"{package}.{module_name}"
+            logging.debug(f"Attempting to import: {full_module_name}")
+
+            try:
+                mod = importlib.import_module(full_module_name)
+                loaded_plugin_names.append(full_module_name)
+                n += 1
+
+                tasks = getattr(mod, "BACKGROUND_TASKS", [])
+                for Task in tasks:
+                    self.background_tasks.append(Task(self))
+
+            except Exception as e:
+                logging.warning(f"Failed to import plugin {full_module_name}: {e}")
+
+        logging.info(f"{n} plugins loaded: {loaded_plugin_names}")
+        return n
 
         
+
     def load_screens(self):
-
-        from . import screens  # Ensure it's a package
-        logging.debug("Loading screens...\n")
+        """
+        Dynamically loads screen modules from the 'screens' subpackage using modern importlib logic.
+        Appends corresponding items to the model via self.module_to_item().
+        """
+        from . import screens  # This must be a proper package with __init__.py
+        logging.debug("[load_screens] Starting to load screens...\n")
 
         model = self.model
         model.clear()
 
-        # Path to the package contents
         try:
             screens_path = importlib.resources.files(screens)
+            logging.debug(f"[load_screens] Resolved path to screens: {screens_path}")
         except Exception as e:
-            logging.error(f"Failed to resolve screens package: {e}")
+            logging.error(f"[load_screens] Failed to resolve screens package: {e}")
             return
 
         for entry in screens_path.iterdir():
-            if entry.name.startswith("_") or not entry.name.endswith(".py"):
+            logging.debug(f"[load_screens] Found entry: {entry.name}")
+
+            if not entry.name.endswith(".py") or entry.name.startswith("_"):
+                logging.debug(f"[load_screens] Skipping: {entry.name}")
                 continue
+
             module_name = entry.stem
             full_module_name = f"{screens.__name__}.{module_name}"
+            logging.debug(f"[load_screens] Attempting to resolve module: {full_module_name}")
 
             try:
                 spec = importlib.util.find_spec(full_module_name)
                 if spec is not None:
-                    model.appendRow(self.module_to_item(None, module_name, False, package="screens"))
+                    item = self.module_to_item(None, module_name, False, package="screens")
+                    model.appendRow(item)
+                    logging.info(f"[load_screens] Loaded screen module: {full_module_name}")
+                else:
+                    logging.warning(f"[load_screens] Spec not found for: {full_module_name}")
             except Exception as e:
-                logging.warning(f"Could not import {full_module_name}: {e}")            
+                logging.warning(f"[load_screens] Could not import {full_module_name}: {e}")
 
+        logging.info("[load_screens] Finished loading screens.")
 
     def module_to_item(self, importer, module_name, is_package, package=__package__):
         import pkgutil
