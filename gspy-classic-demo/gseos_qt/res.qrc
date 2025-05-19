@@ -1,0 +1,16 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="folder.png">res/folder.png</file>
+        <file alias="folder.svg">res/folder.svg</file>
+        <file alias="window.png">res/window.png</file>
+        <file alias="window.svg">res/window.svg</file>
+        <file alias="SourceCodePro-Regular.ttf">res/SourceCodePro-Regular.ttf</file>
+        <file alias="FontAwesome_new.ttf">res/FontAwesome_new.ttf</file>
+        <file alias="five_dots_v.png">res/five_dots_v.png</file>
+        <file alias="grabber.png">res/grabber.png</file>
+        <file alias="icon.png">res/icon.png</file>
+        <file alias="icon-beta.png">res/icon-beta.png</file>
+        <file alias="icon-big.png">res/icon-big.png</file>
+        <file alias="icon-big-beta.png">res/icon-big-beta.png</file>
+    </qresource>
+</RCC>
