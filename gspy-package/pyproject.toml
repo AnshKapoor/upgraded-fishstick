@@ -58,7 +58,7 @@ package-dir = {"" = "src"}
 
 # --- entry‑points ---------------------------------------
 [project.gui-scripts]           # Creates a clickable launcher on Windows/macOS
-gspy-egse-gui = "gspy_egse.gui.main:run"
+gspy-egse-gui = "gspy_egse.main:run"
 
 # [project.scripts]               # (optional) CLI utilities
 # gspy-egse-cli = "gspy_egse.cli:main"
