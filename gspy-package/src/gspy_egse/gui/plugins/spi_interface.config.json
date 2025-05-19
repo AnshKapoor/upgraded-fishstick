@@ -1,0 +1,5 @@
+{
+  "op_mode": "SPi/GPIO",
+  "slave_select": 1,
+  "bit_rate": 200000
+}

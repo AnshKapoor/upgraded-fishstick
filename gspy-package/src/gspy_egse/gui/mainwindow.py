@@ -4,6 +4,9 @@ from PyQt6.QtGui import QStandardItem, QStandardItemModel, QIcon
 from contextlib import suppress
 from typing import *
 
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 from gspy_egse.gui.branding import *
 from gspy_egse.gui.utils.misc import Extendable
 from gspy_egse.gui.utils.widget import call_in_main_thread, event_name
@@ -12,6 +15,11 @@ from gspy_egse.gui.widgets.bottomwidget import BottomWidget
 from gspy_egse.gui.widgets.drophint import DropHint
 from gspy_egse.gui.utils.widget import async_in_main_thread, ResizeListener, PaintListener
 from gspy_egse.gui.utils.recorder import RecorderWindow, Recorder
+
+import importlib
+import importlib.util
+import importlib.resources
+from pathlib import Path
 
 global recorder
 recorder = Recorder()
@@ -481,6 +489,9 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         return selection_item
 
     def restore_panels(self):
+        
+        logging.debug('Restore panels function. \n')
+        
         with suppress(Exception):
             self.tree_widget.deleteLater()
         with suppress(Exception):
@@ -495,8 +506,9 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         self.bottom_dock.setWidget(self.bottom_widget)
         self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.bottom_dock)
         self.message_handler = MessageHandler(self.bottom_widget.textBrowser)
+        
         global recorder
-        return recorder.set_message_handler(self.message_handler)
+        recorder.set_message_handler(self.message_handler)
 
         # TODO on restore panels from view crashes here
         self.load_plugins()
@@ -515,64 +527,77 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
 
     def load_plugins(self, plugins=None, package="plugins"):
         pass
-        """
-        PLugin Loading must be refactored to allow separation of plugins into separate packages
         
-        import plugins as p
-        import pkgutil
-        import importlib
-        importlib.import_module(package)
+        # # PLugin Loading must be refactored to allow separation of plugins into separate packages
         
-        loaded_plugin_names = []  # To store the names of loaded plugins
+        # import gspy_egse.gui.plugins as p
+        # import pkgutil
+        # import importlib
+        # importlib.import_module(package)
+        
+        # loaded_plugin_names = []  # To store the names of loaded plugins
 
-        if plugins is None:
-           self.kill_tasks()
+        # if plugins is None:
+        #     self.kill_tasks()
+        #     n = self.load_plugins(pkgutil.iter_modules(p.__path__))
+        #     self.message_handler.info("%s plugins loaded." % n)
+        #     return
+        # n = 0
+        # for importer, module_name, is_pkg in plugins:
+        #     if is_pkg:
+        #         path = p.__path__[0]
+        #         path = os.path.join(path, module_name)
+        #         path = [path]
+        #         loaded_plugin_names.append(package + "." + module_name)  # Store loaded plugin name
 
-            n = self.load_plugins(pkgutil.iter_modules(p.__path__))
-            self.message_handler.info("%s plugins loaded." % n)
-            return
-        n = 0
-        for importer, module_name, is_pkg in plugins:
-            if is_pkg:
-                path = p.__path__[0]
-                path = os.path.join(path, module_name)
-                path = [path]
-                loaded_plugin_names.append(package + "." + module_name)  # Store loaded plugin name
+        #         n += self.load_plugins(pkgutil.iter_modules(path), package + "." + module_name)
 
-                n += self.load_plugins(pkgutil.iter_modules(path), package + "." + module_name)
-
-            else:
-                n += 1
-                module_ = importlib.import_module(package + "." + module_name, package=package)
-                loaded_plugin_names.append(package + "." + module_name)  # Store loaded plugin name
-                try:
-                    tasks = module_.BACKGROUND_TASKS
-                except AttributeError:
-                    tasks = []
-                for Task in tasks:
-                    self.background_tasks.append(Task(self))
+        #     else:
+        #         n += 1
+        #         module_ = importlib.import_module(package + "." + module_name, package=package)
+        #         loaded_plugin_names.append(package + "." + module_name)  # Store loaded plugin name
+        #         try:
+        #             tasks = module_.BACKGROUND_TASKS
+        #         except AttributeError:
+        #             tasks = []
+        #         for Task in tasks:
+        #             self.background_tasks.append(Task(self))
                     
-        # Print loaded plugin names and their order
-        # for i, plugin_name in enumerate(loaded_plugin_names, 1):
-        #    print(f"Loaded plugin {i}: {plugin_name}")
-            
-        return n
-        """
-
-    def load_screens(self):
-        pass
-        """
-        This must be handled differently to allow for screens to be loaded from independent packages
+        # # Print loaded plugin names and their order
+        # # for i, plugin_name in enumerate(loaded_plugin_names, 1):
+        # #    print(f"Loaded plugin {i}: {plugin_name}")
+        # return n
         
-        from . import screens
-        import pkgutil
+
+        
+    def load_screens(self):
+
+        from . import screens  # Ensure it's a package
+        logging.debug("Loading screens...\n")
 
         model = self.model
         model.clear()
 
-        for importer, module_name, is_pkg in pkgutil.iter_modules(screens.__path__):
-            model.appendRow(self.module_to_item(importer, module_name, is_pkg, package="screens"))
-        """
+        # Path to the package contents
+        try:
+            screens_path = importlib.resources.files(screens)
+        except Exception as e:
+            logging.error(f"Failed to resolve screens package: {e}")
+            return
+
+        for entry in screens_path.iterdir():
+            if entry.name.startswith("_") or not entry.name.endswith(".py"):
+                continue
+            module_name = entry.stem
+            full_module_name = f"{screens.__name__}.{module_name}"
+
+            try:
+                spec = importlib.util.find_spec(full_module_name)
+                if spec is not None:
+                    model.appendRow(self.module_to_item(None, module_name, False, package="screens"))
+            except Exception as e:
+                logging.warning(f"Could not import {full_module_name}: {e}")            
+
 
     def module_to_item(self, importer, module_name, is_package, package=__package__):
         import pkgutil
