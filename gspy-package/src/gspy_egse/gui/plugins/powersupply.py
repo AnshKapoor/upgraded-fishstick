@@ -6,7 +6,7 @@ import qtawesome as qta
 import pyqtgraph as pg
 
 try:
-    from ..hardware_modules import powersupply
+    from gspy_egse.gui.hardware_modules import powersupply
     from ..utils.plugin_settings import PluginSettings
     from ..utils.misc import add_value_to_data, Extendable
     from ..utils.widget import expand_widget, SplitterWithSettings, re_plot, call_in_main_thread
