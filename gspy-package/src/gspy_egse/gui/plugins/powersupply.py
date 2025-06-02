@@ -5,21 +5,29 @@ import threading
 import qtawesome as qta
 import pyqtgraph as pg
 
-try:
-    from gspy_egse.gui.hardware_modules import powersupply
-    from ..utils.plugin_settings import PluginSettings
-    from ..utils.misc import add_value_to_data, Extendable
-    from ..utils.widget import expand_widget, SplitterWithSettings, re_plot, call_in_main_thread
-    from ..utils.plugin import Setting, ObjectWithSettings, WidgetWithExtension
-    from ..utils.recorder import Recordable
-except (ValueError, ImportError):
-    from hardware_modules import powersupply
-    from utils.plugin_settings import PluginSettings
-    from utils.misc import add_value_to_data, Extendable
-    from utils.widget import expand_widget, SplitterWithSettings, re_plot, call_in_main_thread
-    from utils.plugin import Setting, ObjectWithSettings, WidgetWithExtension
-    from utils.recorder import Recordable
+# try:    
+#     from ..hardware_modules.powersupply import powersupply
+#     from ..utils.plugin_settings import PluginSettings
+#     from ..utils.misc import add_value_to_data, Extendable
+#     from ..utils.widget import expand_widget, SplitterWithSettings, re_plot, call_in_main_thread
+#     from ..utils.plugin import Setting, ObjectWithSettings, WidgetWithExtension
+#     from ..utils.recorder import Recordable
+# except (ValueError, ImportError):
+    
+#     from gspy_egse.gui.hardware_modules.powersupply import powersupply
+#     from utils.plugin_settings import PluginSettings
+#     from utils.misc import add_value_to_data, Extendable
+#     from utils.widget import expand_widget, SplitterWithSettings, re_plot, call_in_main_thread
+#     from utils.plugin import Setting, ObjectWithSettings, WidgetWithExtension
+#     from utils.recorder import Recordable
 
+from gspy_egse.gui.hardware_modules.powersupply import PowerSupply as powersupply
+from gspy_egse.gui.hardware_modules.powersupply import MockupPowerSupply as mockuppowersupply
+from gspy_egse.gui.utils.plugin_settings import PluginSettings
+from gspy_egse.gui.utils.misc import add_value_to_data, Extendable
+from gspy_egse.gui.utils.widget import expand_widget, SplitterWithSettings, re_plot, call_in_main_thread
+from gspy_egse.gui.utils.plugin import Setting, ObjectWithSettings, WidgetWithExtension
+from gspy_egse.gui.utils.recorder import Recordable
 
 class PowerSupplyConnection(QtCore.QObject, ObjectWithSettings, Recordable):
     def __init__(self, window: Extendable, *args, **kwargs):
@@ -106,7 +114,7 @@ class PowerSupplyConnection(QtCore.QObject, ObjectWithSettings, Recordable):
             return
         if self.hardware is not None:
             self.close()
-        constructor = powersupply.MockupPowerSupply if self.mockup.value else powersupply.PowerSupply
+        constructor = mockuppowersupply if self.mockup.value else powersupply
         ch = self.ch.value
 
         self.hardware = constructor(

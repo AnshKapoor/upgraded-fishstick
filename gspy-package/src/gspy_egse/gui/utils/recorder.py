@@ -1,5 +1,8 @@
 import time
 import qtawesome as qta
+
+import gspy_egse.gui.globalvars as glob
+
 import copy
 import pickle
 import gzip
@@ -12,7 +15,7 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
 from functools import wraps
 from contextlib import suppress
-from .misc import WrappedMessageHandler, call_async
+from gspy_egse.gui.utils.misc import WrappedMessageHandler, call_async
 
 RECORDING_FILTER = "GSpy Recording (*.gspy)"
 
@@ -539,3 +542,5 @@ class Recorder(QObject):
         for i in instances:
             from .widget import async_in_main_thread
             async_in_main_thread(Recorder.sync_play_back, (instances, i, recording.action))
+
+glob.Recorder = Recorder()

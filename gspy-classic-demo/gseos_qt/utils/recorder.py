@@ -1,6 +1,6 @@
 import time
 import qtawesome as qta
-import gseos_qt.globalvars as glob
+import gspy_egse.gui.globalvars as glob
 import copy
 import pickle
 import gzip
@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
 from functools import wraps
 from contextlib import suppress
-from gseos_qt.utils.misc import WrappedMessageHandler, call_async
+from gspy_egse.gui.utils.misc import WrappedMessageHandler, call_async
 
 RECORDING_FILTER = "GSpy Recording (*.gspy)"
 
@@ -55,9 +55,8 @@ class RecorderWindow(QMainWindow):
         self.step.setText("")
         self.step.clicked.connect(self.step_click)
 
-        global recorder
-        recorder.finished.connect(self.finished)
-        recorder.recording_changed.connect(self.on_new_recording)
+        glob.Recorder.finished.connect(self.finished)
+        glob.Recorder.recording_changed.connect(self.on_new_recording)
 
         self.action_save.triggered.connect(lambda: select_file(
             self.save_file,
@@ -73,14 +72,14 @@ class RecorderWindow(QMainWindow):
 
         self.record_name.textChanged.connect(self.update_name)
 
-        self.list_record.setModel(recorder.record_items_model)
+        self.list_record.setModel(glob.Recorder.record_items_model)
         self.on_new_recording()
         with suppress(Exception):
             self.restoreGeometry(glob.Settings.value("recorder_geometry", None))
 
         self.status_label = QLabel("Start or Load Recording", self)
         self.statusbar.addPermanentWidget(self.status_label, 1)
-        recorder.m_h = StolenObject(recorder.m_h, ["info", "success"], self.status_set)
+        glob.Recorder.m_h = StolenObject(glob.Recorder.m_h, ["info", "success"], self.status_set)
 
         self.show()
 
@@ -88,47 +87,45 @@ class RecorderWindow(QMainWindow):
         self.status_label.setText(message)
 
     def update_name(self, *_):
-        recorder.recording.name = self.record_name.text()
+        glob.Recorder.recording.name = self.record_name.text()
 
     @pyqtSlot(str)
     def save_file(self, file: str):
         # store the object
         with gzip.open(file, 'wb') as f:
-            pickle.dump(recorder.recording.to_dump(), f)
+            pickle.dump(glob.Recorder.recording.to_dump(), f)
 
         glob.Settings.setValue("record_path", os.path.dirname(file))
-        recorder.m_h.info("File saved. (%d Steps)" % len(recorder.recording.recordings))
+        glob.Recorder.m_h.info("File saved. (%d Steps)" % len(glob.Recorder.recording.recordings))
 
     @pyqtSlot(str)
     def load_file(self, file: str):
         # restore the object
         with gzip.open(file, 'rb') as f:
             dump = pickle.load(f)
-        recorder.set_recording(Recording.from_dump(dump))
+        glob.Recorder.set_recording(Recording.from_dump(dump))
 
         glob.Settings.setValue("record_path", os.path.dirname(file))
-        recorder.m_h.info("File loaded. (%d Steps)" % len(recorder.recording.recordings))
+        glob.Recorder.m_h.info("File loaded. (%d Steps)" % len(glob.Recorder.recording.recordings))
 
     def on_new_recording(self):
-        self.list_play.setModel(recorder.recording.play_items_model)
-        self.record_name.setText(recorder.recording.name)
+        self.list_play.setModel(glob.Recorder.recording.play_items_model)
+        self.record_name.setText(glob.Recorder.recording.name)
 
     def closeEvent(self, *args, **kwargs):
-        global recorder
         glob.Settings.setValue("recorder_geometry", self.saveGeometry())
-        recorder.m_h = recorder.m_h.original
+        glob.Recorder.m_h = glob.Recorder.m_h.original
         self.deleteLater()
         QMainWindow.closeEvent(self, *args, **kwargs)
 
     @pyqtSlot()
     def record_click(self):
-        global recorder
-        if recorder.is_recording:
+        if glob.Recorder.is_recording:
             self.record.setIcon(qta.icon("fa.circle", color="red"))
             self.play.setEnabled(True)
             self.f_forward.setEnabled(True)
             self.step.setEnabled(True)
-            recorder.stop_recording()
+            glob.Recorder.stop_recording()
         else:
             self.record.setIcon(qta.icon("fa.stop", color="red"))
             self.play.setEnabled(False)
@@ -136,15 +133,15 @@ class RecorderWindow(QMainWindow):
             self.step.setEnabled(False)
             self.stop.setEnabled(False)
             self.list_play.setEnabled(True)
-            recorder.start_recording()
+            glob.Recorder.start_recording()
 
     def step_click(self):
         self.stop.setEnabled(True)
         self.list_play.setEnabled(False)
-        recorder.step_playback()
+        glob.Recorder.step_playback()
 
     def stop_click(self):
-        recorder.stop_playback()
+        glob.Recorder.stop_playback()
 
     @pyqtSlot()
     def finished(self):
@@ -162,24 +159,24 @@ class RecorderWindow(QMainWindow):
         self.step.setEnabled(False)
         self.stop.setEnabled(False)
         self.list_play.setEnabled(True)
-        recorder.fast_playback()
+        glob.Recorder.fast_playback()
 
     def play_click(self):
         self.stop.setEnabled(True)
         self.list_play.setEnabled(False)
-        if recorder.is_playing_back and not recorder.is_paused:
+        if glob.Recorder.is_playing_back and not glob.Recorder.is_paused:
             self.play.setIcon(qta.icon("fa.play", color="green"))
             self.f_forward.setEnabled(True)
             self.step.setEnabled(True)
-            recorder.pause_playback()
+            glob.Recorder.pause_playback()
         else:
             self.play.setIcon(qta.icon("fa.pause", color="green"))
             self.f_forward.setEnabled(False)
             self.step.setEnabled(False)
-            if recorder.is_paused:
-                recorder.continue_playback()
+            if glob.Recorder.is_paused:
+                glob.Recorder.continue_playback()
             else:
-                recorder.start_playback()
+                glob.Recorder.start_playback()
 
 
 class PlayAction:
@@ -203,7 +200,7 @@ class Recordable:
                     "args": args,
                     "kwargs": kwargs
                 })
-                recorder.record(self.cls_name, self.instance_name, action)
+                glob.Recorder.record(self.cls_name, self.instance_name, action)
                 kwargs["play_back"] = False
                 return func(self, *args, **kwargs)
 
@@ -241,15 +238,11 @@ class Recordable:
             self.recorder_register()
 
     def recorder_register(self):
-        global recorder
-        if not "recorder" in globals():
-            recorder = Recorder()
-        recorder.register_instance(self.__class__, self.cls_name, self, self.instance_name, self.singleton)
+        glob.Recorder.register_instance(self.__class__, self.cls_name, self, self.instance_name, self.singleton)
 
     @property
     def playing_back(self) -> bool:
-        global recorder
-        return recorder.is_playing_back
+        return glob.Recorder.is_playing_back
 
     def play_back(self, action: PlayAction):
         if isinstance(action.action, dict):

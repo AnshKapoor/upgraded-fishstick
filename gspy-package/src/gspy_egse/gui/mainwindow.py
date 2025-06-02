@@ -577,6 +577,8 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         from . import screens  # This must be a proper package with __init__.py
         logging.debug("[load_screens] Starting to load screens...\n")
 
+        import gspy_egse.gui.screens as screens
+
         model = self.model
         model.clear()
 
@@ -612,7 +614,7 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         logging.info("[load_screens] Finished loading screens.")
 
     def module_to_item(self, importer, module_name, is_package, package=__package__):
-        import pkgutil
+        import pkgutil  
         import importlib
         # print(package)
 

@@ -567,6 +567,8 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
 
         for importer, module_name, is_pkg in pkgutil.iter_modules(screens.__path__):
             model.appendRow(self.module_to_item(importer, module_name, is_pkg, package="screens"))
+            print(f"[load_screens] Loaded screen module: {module_name}")
+
 
     def module_to_item(self, importer, module_name, is_package, package=__package__):
         import pkgutil
