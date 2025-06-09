@@ -6,27 +6,19 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from typing import *
 
-try:
-    from ...plugins.juice.spacewire import SpaceWireConnection
-    from ...utils.plugin import WidgetWithExtension, Setting
-    from ...utils.misc import Extendable
-    from ...utils.widget import call_in_main_thread, delay_in_main_thread, async_in_main_thread, \
-        select_file, ActivationListener
-    from ...utils.recorder import Recordable
-    from ...hardware_modules.spacewire import SpaceWire
-    from ...hardware_modules.juice_lib.ramfs import RamFs
-except (ValueError, ImportError):
-    from plugins.juice.spacewire import SpaceWireConnection
-    from utils.plugin import WidgetWithExtension, Setting
-    from utils.misc import Extendable
-    from utils.widget import call_in_main_thread, delay_in_main_thread, async_in_main_thread, \
-        select_file, ActivationListener
-    from utils.recorder import Recordable
-    from hardware_modules.spacewire import SpaceWire
-    from hardware_modules.juice_lib.ramfs import RamFs
+from gspy_egse.gui.plugins.juice.spacewire import SpaceWireConnection
+from gspy_egse.gui.utils.plugin import WidgetWithExtension, Setting
+from gspy_egse.gui.utils.misc import Extendable
+from gspy_egse.gui.utils.widget import (
+    call_in_main_thread, delay_in_main_thread, async_in_main_thread,
+    select_file, ActivationListener
+)
+from gspy_egse.gui.utils.recorder import Recordable
+from gspy_egse.gui.hardware_modules.spacewire import SpaceWire
+from gspy_egse.gui.hardware_modules.juice_lib.ramfs import RamFs
+
 with suppress(Exception):
     from PIL import Image
-
 
 class RequirePlugins(WidgetWithExtension):
     def __init__(self, *args, **kwargs):
