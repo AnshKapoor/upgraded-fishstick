@@ -76,7 +76,7 @@ class FileDownUploadWidget(WidgetWithExtension, Recordable):
         print(f"connection for filedownload is: {self.connection}")
         self.spw = self.connection.hardware #hardware = RecordableSpaceWire-> SpaceWire
 
-        self.ui = uic.loadUi("ui/fileDownUp.ui", self)
+        self.ui = uic.loadUi("src/gspy_egse/gui/ui/fileDownUp.ui", self)
         self._filename_down = self.add_setting(
             name="filename_down_local",
             default=self._params[0],

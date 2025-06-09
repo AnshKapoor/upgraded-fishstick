@@ -52,7 +52,7 @@ class HousekeepingWidget(WidgetWithExtension):
         hk = None
         with suppress(Exception):
             hk = self.spw.hk
-        self.ui = uic.loadUi("ui/houseKeeping.ui", self)
+        self.ui = uic.loadUi("src/gspy_egse/gui/ui/houseKeeping.ui", self)
         if hk is not None:
             self.control_switches.set_value(hk["control_reg"])
         self.control_switches.set_names([

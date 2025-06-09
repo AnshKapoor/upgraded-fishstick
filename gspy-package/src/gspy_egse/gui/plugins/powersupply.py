@@ -210,7 +210,7 @@ class PowerSupplyWidget(WidgetWithExtension):
         c = self.connection = extension  # type: PowerSupplyConnection
 
         (default_channel, default_view) = self._params
-        self.ui = uic.loadUi("ui/powersupplywidget.ui", self)
+        self.ui = uic.loadUi("src/gspy_egse/gui/ui/powersupplywidget.ui", self)
         pg.setConfigOption('background', 'w')
         pg.setConfigOption('foreground', 'k')
         self.v_plot = pg.PlotWidget(self)

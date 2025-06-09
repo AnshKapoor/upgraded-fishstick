@@ -57,7 +57,7 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
         self.writeOutLock = threading.Lock()
         print(f"connection for BrickMk4 is: {extension}")
         self.spw = self.connection.hardware #hardware = BrickMk4_HW_Transmit
-        self.ui = uic.loadUi("ui/BrickMk4.ui", self)
+        self.ui = uic.loadUi("src/gspy_egse/gui/ui/BrickMk4.ui", self)
         self.getFrequency()
 
         self.pushButton_preDefinedData.clicked.connect(self.simpleTransfer)

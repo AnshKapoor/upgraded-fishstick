@@ -23,7 +23,7 @@ def append_no_newline(edit: QtWidgets.QTextEdit, s: str):
 class ConsoleWidget(QtWidgets.QWidget):
     def __init__(self, *args):
         QtWidgets.QWidget.__init__(self, *args)
-        self.ui = uic.loadUi("ui/consolewidget.ui", self)
+        self.ui = uic.loadUi("src/gspy_egse/gui/ui/consolewidget.ui", self)
         self.buffer = io.StringIO()
         self.interpreter = GseConsole(sout=self.buffer)
         self.lineEdit = self.lineEditWidget  # type: QtWidgets.QLineEdit

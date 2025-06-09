@@ -11,5 +11,5 @@ def stackedWidgetSet(stacked, widget):
 class BottomWidget(QtWidgets.QWidget):
     def __init__(self, *args):
         QtWidgets.QWidget.__init__(self, *args)
-        self.ui = uic.loadUi("ui/tabwidget.ui", self)
+        self.ui = uic.loadUi("src/gspy_egse/gui/ui/tabwidget.ui", self)
         stackedWidgetSet(self.consoleWidget, ConsoleWidget())

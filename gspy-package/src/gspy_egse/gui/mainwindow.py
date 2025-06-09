@@ -567,17 +567,16 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         logging.info(f"{n} plugins loaded: {loaded_plugin_names}")
         return n
 
-        
-
     def load_screens(self):
         """
-        Dynamically loads screen modules from the 'screens' subpackage using modern importlib logic.
-        Appends corresponding items to the model via self.module_to_item().
+        Dynamically loads screen modules from the 'screens' subpackage.
+        Appends items to the model using `self.module_to_item()`.
         """
-        from . import screens  # This must be a proper package with __init__.py
-        logging.debug("[load_screens] Starting to load screens...\n")
-
         import gspy_egse.gui.screens as screens
+        import importlib.resources
+        import importlib
+
+        logging.debug("[load_screens] Starting to load screens...\n")
 
         model = self.model
         model.clear()
@@ -586,7 +585,7 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
             screens_path = importlib.resources.files(screens)
             logging.debug(f"[load_screens] Resolved path to screens: {screens_path}")
         except Exception as e:
-            logging.error(f"[load_screens] Failed to resolve screens package: {e}")
+            logging.exception("[load_screens] Failed to resolve screens package")
             return
 
         for entry in screens_path.iterdir():
@@ -598,54 +597,58 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
 
             module_name = entry.stem
             full_module_name = f"{screens.__name__}.{module_name}"
-            logging.debug(f"[load_screens] Attempting to resolve module: {full_module_name}")
+            logging.debug(f"[load_screens] Attempting to import module: {full_module_name}")
 
             try:
-                spec = importlib.util.find_spec(full_module_name)
-                if spec is not None:
-                    item = self.module_to_item(None, module_name, False, package="screens")
-                    model.appendRow(item)
-                    logging.info(f"[load_screens] Loaded screen module: {full_module_name}")
-                else:
-                    logging.warning(f"[load_screens] Spec not found for: {full_module_name}")
-            except Exception as e:
-                logging.warning(f"[load_screens] Could not import {full_module_name}: {e}")
+                importlib.import_module(full_module_name)
+                item = self.module_to_item(module_name, is_package=False, package=screens.__name__)
+                model.appendRow(item)
+                logging.info(f"[load_screens] Successfully loaded: {full_module_name}")
+            except Exception:
+                logging.exception(f"[load_screens] Failed to import {full_module_name}")
 
         logging.info("[load_screens] Finished loading screens.")
 
-    def module_to_item(self, importer, module_name, is_package, package=__package__):
-        import pkgutil  
+    def module_to_item(self, module_name, is_package, package):
+        """
+        Loads a screen module and returns a UI item with its widget and background tasks.
+        """
         import importlib
-        # print(package)
+        import pkgutil
+        import os
 
-        importlib.import_module(package)
+        full_module_name = f"{package}.{module_name}"
 
         if not is_package:
-            # print("Importing:")
-            module_ = importlib.import_module(package + "." + module_name, package=package)
-            # importer.find_module(module_name).load_module(module_name)
+            try:
+                module_ = importlib.import_module(full_module_name)
+            except Exception:
+                logging.exception(f"[module_to_item] Failed to import {full_module_name}")
+                return QItemPluginItem(module_name + " (broken)", widget=EmptyWidget)
 
-            try:
-                widget = module_.MAIN_WIDGET
-            except AttributeError:
-                widget = EmptyWidget
-            try:
-                tasks = module_.BACKGROUND_TASKS
-            except AttributeError:
-                tasks = []
+            # Attempt to access exported attributes
+            widget = getattr(module_, "MAIN_WIDGET", EmptyWidget)
+            tasks = getattr(module_, "BACKGROUND_TASKS", [])
+
             for Task in tasks:
-                self.background_tasks.append(Task(self))
-            return QItemPluginItem(module_.SCREEN_NAME, widget=widget)
+                try:
+                    self.background_tasks.append(Task(self))
+                except Exception:
+                    logging.exception(f"[module_to_item] Failed to instantiate background task: {Task}")
 
+            screen_name = getattr(module_, "SCREEN_NAME", module_name)
+            return QItemPluginItem(screen_name, widget=widget)
+
+        # If it's a package, recursively add children
         item = QItemPluginFolder(module_name)
-
-        path = os.path.join(os.path.dirname(__file__), package)
-        path = os.path.join(path, module_name)
-        path = [path]
+        path = importlib.import_module(full_module_name).__path__
 
         for importer, modname, is_pkg in pkgutil.iter_modules(path):
-            item.appendRow(self.module_to_item(importer, modname, is_pkg, package=package + "." + module_name))
+            child_item = self.module_to_item(modname, is_pkg, package=full_module_name)
+            item.appendRow(child_item)
+
         return item
+
 
     def show(self):
         QtWidgets.QMainWindow.show(self)

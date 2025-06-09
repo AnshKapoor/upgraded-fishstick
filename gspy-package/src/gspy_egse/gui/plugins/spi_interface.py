@@ -6,12 +6,12 @@ import qtawesome as qta
 import pyqtgraph as pg
 
 try:
-    from ..hardware_modules.spi_interface.spi_onyx import SPIConsole
-    from ..utils.plugin_settings import PluginSettings
-    from ..utils.misc import add_value_to_data, Extendable, WrappedMessageHandler
-    from ..utils.widget import expand_widget, SplitterWithSettings, re_plot, call_in_main_thread
-    from ..utils.plugin import Setting, ObjectWithSettings, WidgetWithExtension
-    from ..utils.recorder import Recordable
+    from gspy_egse.gui.hardware_modules.spi_interface.spi_onyx import SPIConsole
+    from gspy_egse.gui.utils.plugin_settings import PluginSettings
+    from gspy_egse.gui.utils.misc import add_value_to_data, Extendable, WrappedMessageHandler
+    from gspy_egse.gui.utils.widget import expand_widget, SplitterWithSettings, re_plot, call_in_main_thread
+    from gspy_egse.gui.utils.plugin import Setting, ObjectWithSettings, WidgetWithExtension
+    from gspy_egse.gui.utils.recorder import Recordable
 except (ValueError, ImportError):
     from hardware_modules.spi_interface.spi_onyx import SPIConsole
     from utils.plugin_settings import PluginSettings
@@ -98,7 +98,7 @@ class SpiInterfaceWidget(WidgetWithExtension):
         self.connection = extension  # type: SpiInterfaceConnection
 
         self.message_handler = WrappedMessageHandler(None, "SPI Interface")
-        self.ui = uic.loadUi("ui/spiInterface.ui", self)
+        self.ui = uic.loadUi("src/gspy_egse/gui/ui/spiInterface.ui", self)
         self.pushButton_File.clicked.connect(self.fileTransfer)      
         self.pushButton_Transmit.clicked.connect(self.write)
         self.slaveReadButton.clicked.connect(self.read)
