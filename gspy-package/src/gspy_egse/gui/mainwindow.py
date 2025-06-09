@@ -534,23 +534,23 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         loaded_plugin_names = []
         n = 0
 
-        logging.debug(f"Loading plugins from package: {package}")
+        logging.debug(f"[Load plugins] Loading plugins from package: {package}")
         try:
             base_path = importlib.resources.files(importlib.import_module(package))
-            logging.debug(f"Resolved path: {base_path}")
+            logging.debug(f"[Load plugins] Resolved path: {base_path}")
         except Exception as e:
-            logging.error(f"Could not resolve package path: {e}")
+            logging.error(f"[Load plugins] Could not resolve package path: {e}")
             return 0
 
         for entry in base_path.iterdir():
-            logging.debug(f"Found entry: {entry.name}")
+            logging.debug(f"[Load plugins] Found entry: {entry.name}")
             if not entry.name.endswith(".py") or entry.name.startswith("_"):
-                logging.debug(f"Skipping: {entry.name}")
+                logging.debug(f"[Load plugins] Skipping: {entry.name}")
                 continue
 
             module_name = entry.stem
             full_module_name = f"{package}.{module_name}"
-            logging.debug(f"Attempting to import: {full_module_name}")
+            logging.debug(f"[Load plugins] Attempting to import: {full_module_name}")
 
             try:
                 mod = importlib.import_module(full_module_name)
@@ -562,9 +562,9 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
                     self.background_tasks.append(Task(self))
 
             except Exception as e:
-                logging.warning(f"Failed to import plugin {full_module_name}: {e}")
+                logging.warning(f"[Load plugins] Failed to import plugin {full_module_name}: {e}")
 
-        logging.info(f"{n} plugins loaded: {loaded_plugin_names}")
+        logging.info(f"[Load plugins] {n} plugins loaded: {loaded_plugin_names}")
         return n
 
     def load_screens(self):
