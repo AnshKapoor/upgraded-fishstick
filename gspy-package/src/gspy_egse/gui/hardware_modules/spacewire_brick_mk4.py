@@ -20,17 +20,17 @@ except (ValueError, ImportError):
     from utils.utilities import getFirstDevice, printPacketContents
 
 
-from STAR_system.STAR_exceptions import STARAPIError
-from STAR_system.data_chunk import DataChunk
-from STAR_system.link_port import LinkPort
-from STAR_system.packet import Packet
-from STAR_system.device_config import DeviceConfig
-from STAR_system.STAR_enums import STAR_EOP_TYPE, STAR_CHANNEL_DIRECTION, STAR_TRANSFER_STATUS
-from STAR_system.channel import Channel
-from STAR_system.transfer_operations import TransmitOperation, ReceiveOperation
-from STAR_system.config_port import ConfigPort
-from STAR_system.port import Port
-from STAR_system.device import Device
+from gspy_egse.gui.STAR_system.STAR_exceptions import STARAPIError
+from gspy_egse.gui.STAR_system.data_chunk import DataChunk
+from gspy_egse.gui.STAR_system.link_port import LinkPort
+from gspy_egse.gui.STAR_system.packet import Packet
+from gspy_egse.gui.STAR_system.device_config import DeviceConfig
+from gspy_egse.gui.STAR_system.STAR_enums import STAR_EOP_TYPE, STAR_CHANNEL_DIRECTION, STAR_TRANSFER_STATUS
+from gspy_egse.gui.STAR_system.channel import Channel
+from gspy_egse.gui.STAR_system.transfer_operations import TransmitOperation, ReceiveOperation
+from gspy_egse.gui.STAR_system.config_port import ConfigPort
+from gspy_egse.gui.STAR_system.port import Port
+from gspy_egse.gui.STAR_system.device import Device
 
 
 class SpaceWireBrickMk4(ISpaceWireBridge):

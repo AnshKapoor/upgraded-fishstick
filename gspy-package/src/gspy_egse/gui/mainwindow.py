@@ -530,6 +530,7 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         import importlib
         import importlib.resources
         import logging
+        import types
 
         loaded_plugin_names = []
         n = 0
@@ -542,16 +543,19 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
             logging.error(f"[Load plugins] Could not resolve package path: {e}")
             return 0
 
-        for entry in base_path.iterdir():
-            logging.debug(f"[Load plugins] Found entry: {entry.name}")
-            if not entry.name.endswith(".py") or entry.name.startswith("_"):
-                logging.debug(f"[Load plugins] Skipping: {entry.name}")
-                continue
+        def walk_modules(current_path, current_package):
+            for entry in current_path.iterdir():
+                if entry.is_dir():
+                    # Recurse into subpackage
+                    sub_package = f"{current_package}.{entry.name}"
+                    yield from walk_modules(entry, sub_package)
+                elif entry.name.endswith(".py") and not entry.name.startswith("_"):
+                    module_name = entry.name[:-3]  # strip .py
+                    full_module_name = f"{current_package}.{module_name}"
+                    yield full_module_name
 
-            module_name = entry.stem
-            full_module_name = f"{package}.{module_name}"
+        for full_module_name in walk_modules(base_path, package):
             logging.debug(f"[Load plugins] Attempting to import: {full_module_name}")
-
             try:
                 mod = importlib.import_module(full_module_name)
                 loaded_plugin_names.append(full_module_name)
@@ -560,7 +564,6 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
                 tasks = getattr(mod, "BACKGROUND_TASKS", [])
                 for Task in tasks:
                     self.background_tasks.append(Task(self))
-
             except Exception as e:
                 logging.warning(f"[Load plugins] Failed to import plugin {full_module_name}: {e}")
 
