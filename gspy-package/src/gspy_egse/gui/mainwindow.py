@@ -572,12 +572,12 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
 
     def load_screens(self):
         """
-        Dynamically loads screen modules from the 'screens' subpackage.
-        Appends items to the model using `self.module_to_item()`.
+        Dynamically loads screen modules and subpackages from the 'screens' subpackage.
         """
         import gspy_egse.gui.screens as screens
         import importlib.resources
         import importlib
+        import logging
 
         logging.debug("[load_screens] Starting to load screens...\n")
 
@@ -587,24 +587,33 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         try:
             screens_path = importlib.resources.files(screens)
             logging.debug(f"[load_screens] Resolved path to screens: {screens_path}")
-        except Exception as e:
+        except Exception:
             logging.exception("[load_screens] Failed to resolve screens package")
             return
 
         for entry in screens_path.iterdir():
             logging.debug(f"[load_screens] Found entry: {entry.name}")
 
-            if not entry.name.endswith(".py") or entry.name.startswith("_"):
+            if entry.name.startswith("_"):
                 logging.debug(f"[load_screens] Skipping: {entry.name}")
                 continue
 
             module_name = entry.stem
             full_module_name = f"{screens.__name__}.{module_name}"
-            logging.debug(f"[load_screens] Attempting to import module: {full_module_name}")
+
+            if entry.is_file() and entry.name.endswith(".py"):
+                is_package = False
+            elif entry.is_dir() and (entry / "__init__.py").exists():
+                is_package = True
+            else:
+                logging.debug(f"[load_screens] Ignoring non-module entry: {entry.name}")
+                continue
+
+            logging.debug(f"[load_screens] Attempting to import: {full_module_name} (is_package={is_package})")
 
             try:
                 importlib.import_module(full_module_name)
-                item = self.module_to_item(module_name, is_package=False, package=screens.__name__)
+                item = self.module_to_item(module_name, is_package, package=screens.__name__)
                 model.appendRow(item)
                 logging.info(f"[load_screens] Successfully loaded: {full_module_name}")
             except Exception:
@@ -612,13 +621,14 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
 
         logging.info("[load_screens] Finished loading screens.")
 
+
     def module_to_item(self, module_name, is_package, package):
         """
-        Loads a screen module and returns a UI item with its widget and background tasks.
+        Loads a screen module or package and returns a QItemPluginItem or QItemPluginFolder.
         """
         import importlib
         import pkgutil
-        import os
+        import logging
 
         full_module_name = f"{package}.{module_name}"
 
@@ -626,31 +636,35 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
             try:
                 module_ = importlib.import_module(full_module_name)
             except Exception:
-                logging.exception(f"[module_to_item] Failed to import {full_module_name}")
+                logging.exception(f"[module_to_item] Failed to import module {full_module_name}")
                 return QItemPluginItem(module_name + " (broken)", widget=EmptyWidget)
 
-            # Attempt to access exported attributes
             widget = getattr(module_, "MAIN_WIDGET", EmptyWidget)
             tasks = getattr(module_, "BACKGROUND_TASKS", [])
-
             for Task in tasks:
                 try:
                     self.background_tasks.append(Task(self))
+                    logging.debug(f"[module_to_item] Added background task: {Task}")
                 except Exception:
-                    logging.exception(f"[module_to_item] Failed to instantiate background task: {Task}")
+                    logging.exception(f"[module_to_item] Failed to instantiate task: {Task}")
 
             screen_name = getattr(module_, "SCREEN_NAME", module_name)
             return QItemPluginItem(screen_name, widget=widget)
 
-        # If it's a package, recursively add children
-        item = QItemPluginFolder(module_name)
-        path = importlib.import_module(full_module_name).__path__
+        # Handle subpackage (directory with __init__.py)
+        try:
+            pkg = importlib.import_module(full_module_name)
+            path = pkg.__path__  # this must exist if it's a package
+        except Exception:
+            logging.exception(f"[module_to_item] Failed to load subpackage: {full_module_name}")
+            return QItemPluginFolder(module_name + " (broken)")
 
-        for importer, modname, is_pkg in pkgutil.iter_modules(path):
-            child_item = self.module_to_item(modname, is_pkg, package=full_module_name)
-            item.appendRow(child_item)
+        folder_item = QItemPluginFolder(module_name)
+        for importer, modname, is_subpkg in pkgutil.iter_modules(path):
+            child_item = self.module_to_item(modname, is_subpkg, package=full_module_name)
+            folder_item.appendRow(child_item)
 
-        return item
+        return folder_item
 
 
     def show(self):
