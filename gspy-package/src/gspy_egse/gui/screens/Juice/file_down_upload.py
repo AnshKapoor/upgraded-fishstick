@@ -1,7 +1,4 @@
-try:
-    from ...plugins.juice.file_down_upload import FileDownUploadWidget as Widget
-except (ValueError, ImportError):
-    from plugins.juice.file_down_upload import FileDownUploadWidget as Widget
+from gspy_egse.gui.plugins.juice.file_down_upload import FileDownUploadWidget as Widget
 
 VERSION = 1
 SCREEN_NAME = "File Down-/Upload"

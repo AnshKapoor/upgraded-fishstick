@@ -1,7 +1,4 @@
-try:
-    from ...plugins.juice.housekeeping import HousekeepingWidget as Widget
-except (ValueError, ImportError):
-    from plugins.juice.housekeeping import HousekeepingWidget as Widget
+from gspy_egse.gui.plugins.juice.housekeeping import HousekeepingWidget as Widget
 
 VERSION = 1
 SCREEN_NAME = "Housekeeping"
