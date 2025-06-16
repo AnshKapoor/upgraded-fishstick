@@ -34,7 +34,7 @@ Installation
 
       gspy-egse-gui
 
-Demo GUI (2025-05-12)
+Demo GUI (2025-06-16)
 ---------------------
 
 .. image:: figures/gspy-gui-demo16Jun.png
