@@ -1,9 +1,5 @@
-try:
-    from ...plugins.powersupply import PowerSupplyWidget as Widget
-    from ...utils.screen import DoubleScreen
-except (ValueError, ImportError):
-    from plugins.powersupply import PowerSupplyWidget as Widget
-    from utils.screen import DoubleScreen
+from gspy_egse.gui.plugins.powersupply import PowerSupplyWidget as Widget
+from gspy_egse.gui.utils.screen import DoubleScreen
 
 
 class MyDoubleScreen(DoubleScreen):
