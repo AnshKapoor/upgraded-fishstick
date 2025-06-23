@@ -57,7 +57,7 @@ class WidgetWithSettings(QtWidgets.QWidget, ObjectWithSettings):
 
     def make_settings_btn(self, btn: QtWidgets.QPushButton):
         import qtawesome
-        btn.setIcon(qtawesome.icon('fa.cogs'))
+        btn.setIcon(qtawesome.icon('fa5s.cogs'))
         btn.setText("Settings")
         btn.released.connect(self.open_settings)
 
