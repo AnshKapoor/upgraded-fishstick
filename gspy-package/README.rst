@@ -34,11 +34,26 @@ Installation
 
       gspy-egse-gui
 
-Demo GUI (2025-06-16)
+Demo GUI (2025-06-23)
 ---------------------
+.. 
+   .. image:: figures/gspy-gui-demo16Jun.png
+      :width: 600
 
-.. image:: figures/gspy-gui-demo16Jun.png
-   :width: 600
+.. list-table::
+   :widths: 50 50
+   :header-rows: 0
 
-
+   * - .. image:: figures/gspy-gui-demo23Jun_spi.png
+         :width: 200px
+     - .. image:: figures/gspy-gui-demo23Jun_spacewire.png
+         :width: 200px
+   * - .. image:: figures/gspy-gui-demo23Jun_powersupply_single.png
+         :width: 200px
+     - .. image:: figures/gspy-gui-demo23Jun_powersupply_double.png
+         :width: 200px
+   * - .. image:: figures/gspy-gui-demo23Jun_housekeeping.png
+         :width: 200px
+     - .. image:: figures/gspy-gui-demo23Jun_file.png
+         :width: 200px
 
