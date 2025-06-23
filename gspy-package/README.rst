@@ -37,8 +37,8 @@ Installation
 Demo GUI (2025-06-23)
 ---------------------
 .. 
-   .. image:: figures/gspy-gui-demo16Jun.png
-      :width: 600
+.. image:: figures/gspy-gui-demo16Jun.png
+   :width: 600
 
 .. list-table::
    :widths: 50 50
