@@ -7,8 +7,8 @@ from functools import wraps
 import threading
 from typing import *
 
-from .plugin import ObjectWithSettings, Setting
-from .recorder import Recordable
+from gspy_egse.gui.utils.plugin import ObjectWithSettings, Setting
+from gspy_egse.gui.utils.recorder import Recordable
 
 def event_name(number: int) -> str:
     try:
