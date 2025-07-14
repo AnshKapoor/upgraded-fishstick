@@ -1,7 +1,7 @@
 from PyQt6 import QtCore, QtWidgets, QtGui, uic
 import qtawesome as qta
 from six import unichr
-from .utils.widget import expand_rect, shrink_rect
+from gspy_egse.gui.utils.widget import expand_rect, shrink_rect
 
 
 class DropHint(QtWidgets.QWidget):
