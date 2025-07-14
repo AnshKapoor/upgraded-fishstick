@@ -12,13 +12,8 @@ import threading  # from Telecommand import *
 from contextlib import suppress
 from typing import *
 
-try:
-    from ..utils.misc import WrappedMessageHandler, Extendable, call_async
-    from ..hardware_modules.spacewire_events import SpwEvents
-except (ValueError, ImportError):
-    from utils.misc import WrappedMessageHandler, Extendable, call_async
-    from hardware_modules.spacewire_events import SpwEvents
-
+from gspy_egse.gui.utils.misc import WrappedMessageHandler, Extendable, call_async
+from gspy_egse.gui.hardware_modules.spacewire_events import SpwEvents
 
 class ISpaceWireBridge:
     def open(self): raise NotImplementedError

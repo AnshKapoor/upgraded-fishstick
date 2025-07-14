@@ -10,15 +10,9 @@ import json
 module_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(module_path)
 
-try:
-    from ..utils.misc import WrappedMessageHandler
-    from .spacewire import ISpaceWireBridge
-    from ..utils.utilities import getFirstDevice, printPacketContents
-except (ValueError, ImportError):
-    from utils.misc import WrappedMessageHandler
-    from hardware_modules.spacewire import ISpaceWireBridge
-    from utils.utilities import getFirstDevice, printPacketContents
-
+from gspy_egse.gui.utils.misc import WrappedMessageHandler
+from gspy_egse.gui.hardware_modules.spacewire import ISpaceWireBridge
+from gspy_egse.gui.utils.utilities import getFirstDevice, printPacketContents
 
 from gspy_egse.gui.STAR_system.STAR_exceptions import STARAPIError
 from gspy_egse.gui.STAR_system.data_chunk import DataChunk

@@ -3,11 +3,7 @@ import struct
 import threading
 from typing import *
 
-try:
-    from ..hardware_modules.spacewire import ISpaceWireBridge
-except (ValueError, ImportError):
-    from hardware_modules.spacewire import ISpaceWireBridge
-
+from gspy_egse.gui.hardware_modules.spacewire import ISpaceWireBridge
 
 class SpaceWireBridgeGresb(ISpaceWireBridge):
     def __init__(self, tcp_ip='127.0.0.1', tcp_port=3000):
