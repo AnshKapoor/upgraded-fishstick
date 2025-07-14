@@ -10,27 +10,17 @@ import random
 import time
 import json
 
+from gspy_egse.gui.plugins.juice.spacewire import SpaceWireConnection
+from gspy_egse.gui.utils.plugin import WidgetWithExtension
+from gspy_egse.gui.utils.widget import call_in_main_thread, delay_in_main_thread, async_in_main_thread, select_file, ActivationListener
+from gspy_egse.gui.utils.recorder import Recordable
+from gspy_egse.gui.hardware_modules.juice_lib.BrickMk4_HW_Transmit import BrickMk4
+from gspy_egse.gui.utils.transmitResultStorage import TransmitResultStorage
+
 try:
-    from .spacewire import SpaceWireConnection
-    from ...utils.plugin import WidgetWithExtension
-    from ...utils.widget import call_in_main_thread, delay_in_main_thread, async_in_main_thread, \
-        select_file, ActivationListener
-    from ...utils.recorder import Recordable
-    from ...hardware_modules.juice_lib.BrickMk4_HW_Transmit import BrickMk4
-    from ...utils.transmitResultStorage import TransmitResultStorage
-
-except (ValueError, ImportError):
-    from plugins.juice.spacewire import SpaceWireConnection
-    from utils.plugin import WidgetWithExtension
-    from utils.widget import call_in_main_thread, delay_in_main_thread, async_in_main_thread, \
-        select_file, ActivationListener
-    from utils.recorder import Recordable
-    from gseos_qt.hardware_modules.juice_lib.BrickMk4_HW_Transmit import BrickMk4
-    from utils.transmitResultStorage import TransmitResultStorage
-
-
-with suppress(Exception):
     from PIL import Image
+except ImportError:
+    Image = None  # or handle gracefully
 
 
 class RequirePlugins(WidgetWithExtension): #background task is super important

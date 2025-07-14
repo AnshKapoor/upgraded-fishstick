@@ -5,22 +5,6 @@ import threading
 import qtawesome as qta
 import pyqtgraph as pg
 
-# try:    
-#     from ..hardware_modules.powersupply import powersupply
-#     from ..utils.plugin_settings import PluginSettings
-#     from ..utils.misc import add_value_to_data, Extendable
-#     from ..utils.widget import expand_widget, SplitterWithSettings, re_plot, call_in_main_thread
-#     from ..utils.plugin import Setting, ObjectWithSettings, WidgetWithExtension
-#     from ..utils.recorder import Recordable
-# except (ValueError, ImportError):
-    
-#     from gspy_egse.gui.hardware_modules.powersupply import powersupply
-#     from utils.plugin_settings import PluginSettings
-#     from utils.misc import add_value_to_data, Extendable
-#     from utils.widget import expand_widget, SplitterWithSettings, re_plot, call_in_main_thread
-#     from utils.plugin import Setting, ObjectWithSettings, WidgetWithExtension
-#     from utils.recorder import Recordable
-
 from gspy_egse.gui.hardware_modules.powersupply import PowerSupply as powersupply
 from gspy_egse.gui.hardware_modules.powersupply import MockupPowerSupply as mockuppowersupply
 from gspy_egse.gui.utils.plugin_settings import PluginSettings

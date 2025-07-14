@@ -3,26 +3,16 @@ from pathlib import Path
 from contextlib import suppress
 from typing import *
 
-try:
-    from ...plugins.juice.spacewire import SpaceWireConnection
-    from ...utils.plugin import WidgetWithExtension, Setting
-    from ...utils.misc import Extendable, get_bit
-    from ...utils.widget import call_in_main_thread, delay_in_main_thread, async_in_main_thread, \
-        select_file, ActivationListener
-    from ...hardware_modules.spacewire import SpaceWire
-    from ...hardware_modules.juice_lib.ramfs import RamFs
-    from ...hardware_modules.juice_lib.housekeeping import Housekeeping
-    from ...hardware_modules.juice_lib.commands import *
-except (ValueError, ImportError):
-    from plugins.juice.spacewire import SpaceWireConnection
-    from utils.plugin import WidgetWithExtension, Setting
-    from utils.misc import Extendable, get_bit
-    from utils.widget import call_in_main_thread, delay_in_main_thread, async_in_main_thread, \
-        select_file, ActivationListener
-    from hardware_modules.spacewire import SpaceWire
-    from hardware_modules.juice_lib.ramfs import RamFs
-    from hardware_modules.juice_lib.housekeeping import Housekeeping
-    from hardware_modules.juice_lib.commands import *
+
+from gspy_egse.gui.plugins.juice.spacewire import SpaceWireConnection
+from gspy_egse.gui.utils.plugin import WidgetWithExtension, Setting
+from gspy_egse.gui.utils.misc import Extendable, get_bit
+from gspy_egse.gui.utils.widget import call_in_main_thread, delay_in_main_thread, async_in_main_thread, \
+    select_file, ActivationListener
+from gspy_egse.gui.hardware_modules.spacewire import SpaceWire
+from gspy_egse.gui.hardware_modules.juice_lib.ramfs import RamFs
+from gspy_egse.gui.hardware_modules.juice_lib.housekeeping import Housekeeping
+from gspy_egse.gui.hardware_modules.juice_lib.commands import *
 
 
 class RequirePlugins(WidgetWithExtension):

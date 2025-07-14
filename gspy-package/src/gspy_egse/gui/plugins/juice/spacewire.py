@@ -4,24 +4,14 @@ from contextlib import suppress
 import threading
 import re
 
-try:
-    from ...hardware_modules.spacewire import SpaceWire
-    from ...hardware_modules.spacewire_gresb import SpaceWireBridgeGresb
-    from ...hardware_modules.spacewire_shimafuji import SpaceWireBridgeShimafuji
-    from ...hardware_modules.spacewire_brick_mk4 import SpaceWireBrickMk4
-    from ...hardware_modules.juice_lib.commands import *
-    from ...utils.misc import Extendable
-    from ...utils.plugin import Setting, ObjectWithSettings, PluginSettings
-    from ...utils.recorder import Recordable
-except (ValueError, ImportError):
-    from hardware_modules.spacewire import SpaceWire
-    from hardware_modules.spacewire_gresb import SpaceWireBridgeGresb
-    from hardware_modules.spacewire_shimafuji import SpaceWireBridgeShimafuji
-    from hardware_modules.spacewire_brick_mk4 import SpaceWireBrickMk4
-    from hardware_modules.juice_lib.commands import *
-    from utils.misc import Extendable
-    from utils.plugin import Setting, ObjectWithSettings, PluginSettings
-    from utils.recorder import Recordable
+from gspy_egse.gui.hardware_modules.spacewire import SpaceWire
+from gspy_egse.gui.hardware_modules.spacewire_gresb import SpaceWireBridgeGresb
+from gspy_egse.gui.hardware_modules.spacewire_shimafuji import SpaceWireBridgeShimafuji
+from gspy_egse.gui.hardware_modules.spacewire_brick_mk4 import SpaceWireBrickMk4
+from gspy_egse.gui.hardware_modules.juice_lib.commands import *
+from gspy_egse.gui.utils.misc import Extendable
+from gspy_egse.gui.utils.plugin import Setting, ObjectWithSettings, PluginSettings
+from gspy_egse.gui.utils.recorder import Recordable
 
 
 class RecordableSpaceWire(SpaceWire, Recordable):
