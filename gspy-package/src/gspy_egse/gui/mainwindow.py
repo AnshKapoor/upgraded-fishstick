@@ -114,6 +114,7 @@ def selection_to_array(sel: QtCore.QModelIndex) -> "[int]":
 
 class DetachedWindow(QtWidgets.QMainWindow):
     def __init__(self, window: "MyMainWindow", widget: QtWidgets.QWidget, selection, name, *args, **kwargs):
+        logger.info(f"Creating DetachedWindow for widget {widget.__class__.__name__} with selection {selection} and name '{name}'")
         self.initialized = False
         # self.i = 0
         # self.llast_event = None
@@ -138,17 +139,22 @@ class DetachedWindow(QtWidgets.QMainWindow):
         self.setGeometry(geo)
         self.move(pos)
         self.show()
+        logger.debug("DetachedWindow shown on screen.")
         if os.name == 'nt' or os.name == 'WINDOWS_NT':
             self.hide()
             self.show()
+            logger.debug("DetachedWindow forced show() on Windows for proper rendering.")
 
         with suppress(Exception):
             # noinspection PyUnresolvedReferences
             self.widget.handle_detach()
         widget.show()
         self.initialized = True
+        logger.info(f"DetachedWindow initialized for {name}.")
 
     def event(self, q_event: QtCore.QEvent):
+        event_type = q_event.type()
+        logger.debug(f"DetachedWindow event received: type={event_type}")
         p_e = QtCore.QEvent.Paint
         m_e = QtCore.QEvent.Move
         u_e = QtCore.QEvent.UpdateRequest
@@ -159,6 +165,7 @@ class DetachedWindow(QtWidgets.QMainWindow):
         if not self.initialized or q_event.type() in [216, p_e, u_e, z_o_c, l_r]:
             return QtWidgets.QMainWindow.event(self, q_event)
         if q_event.type() == c_e:
+            logger.info("DetachedWindow close event triggered.")
             self.initialized = False
             if self.widget is not None:
                 if not self.saved:
@@ -169,13 +176,16 @@ class DetachedWindow(QtWidgets.QMainWindow):
             if self.main_window is not None:
                 self.main_window.windows.remove(self)
                 self.main_window = None
+            logger.debug("DetachedWindow cleanup completed after close event.")
             return QtWidgets.QMainWindow.event(self, q_event)
         if not self.dragging and self.last_event == m_e and q_event.type() == m_e:
             if self.main_window.isVisible() and not self.main_window.isMinimized():
+                logger.debug("DetachedWindow starting drag with drop hint fade-in.")
                 self.main_window.drop_hint.fade_in()
                 self.dragging = True
                 self.main_window.raise_()
         elif self.dragging and q_event.type() != m_e:
+            logger.debug("DetachedWindow drag finished; checking reattach.")
             self.dragging = False
             self.main_window.drop_hint.fade_out()
             if self.main_window.drop_hint.mouse_inside:
@@ -192,6 +202,7 @@ class DetachedWindow(QtWidgets.QMainWindow):
         return QtWidgets.QMainWindow.event(self, q_event)
 
     def reattach(self):
+        logger.info(f"Reattaching DetachedWindow widget {self.name} to main window.")
         self.initialized = False
         if self.main_window is not None:
             self.main_window.set_widget(self.widget)
@@ -205,8 +216,10 @@ class DetachedWindow(QtWidgets.QMainWindow):
 
         self.widget = None
         self.deleteLater()
+        logger.debug(f"DetachedWindow for {self.name} successfully reattached and deleted.")
 
     def to_variant(self):
+        logger.debug(f"Saving DetachedWindow state for widget '{self.name}'.")
         self.saved = True
         try:
             identifier = self.widget.identifier
