@@ -5,7 +5,7 @@ from contextlib import suppress
 from typing import *
 
 import logging
-logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 from gspy_egse.gui.branding import *
 from gspy_egse.gui.utils.misc import Extendable
@@ -36,6 +36,7 @@ class MessageHandler(QtCore.QObject):
         self._l = [ResizeListener(self.box, self.post_scroll),
                    PaintListener(self.box, self.pre_scroll)]
         self.pre_scroll()
+        logger.info("MessageHandler initialized with QTextBrowser.")
 
     def pre_scroll(self):
         try:
@@ -46,56 +47,68 @@ class MessageHandler(QtCore.QObject):
         self._do_scroll = False
         if scroll.value() >= self._stale_max:
             self._do_scroll = True
+        logger.debug(f"pre_scroll: do_scroll={self._do_scroll}, stale_max={self._stale_max}")
 
     def post_scroll(self):
         try:
             scroll = self.box.verticalScrollBar()
         except (Exception,):
+            logger.debug("post_scroll: QTextBrowser scrollbar not available.")
             return
 
         if self._do_scroll:
             scroll.setValue(scroll.maximum())
         self._stale_max = scroll.maximum()
+        logger.debug(f"post_scroll: scroll position set to {self._stale_max}")
 
     def a_add_lines(self):
         self.pre_scroll()
         while len(self.lines):
             line = self.lines[0]
             self.box.append(line)
+            logger.info(f"MessageHandler added line: {line[:60]}{'...' if len(line)>60 else ''}")
             del self.lines[0]
         self.post_scroll()
 
     def warning(self, message):
+        logger.warning(f"GUI Warning: {message}")
         call_in_main_thread(self.box.append, (
             '<span style="white-space: pre"><span style="color:orange">[Warning]</span> %s</span>' % message,))
 
     def error(self, message):
+        logger.error(f"GUI Error: {message}")
         call_in_main_thread(self.box.append, (
             '<span style="white-space: pre"><span style="color:red   ">[Error]</span>   %s</span>' % message,))
 
     def info(self, message):
+        logger.info(f"GUI Info: {message}")
         call_in_main_thread(self.box.append, (
             '<span style="white-space: pre"><span style="color:blue  ">[Info]</span>    %s</span>' % message,))
 
     def success(self, message):
+        logger.info(f"GUI Success: {message}")
         call_in_main_thread(self.box.append, (
             '<span style="white-space: pre"><span style="color:green ">[Success]</span> %s</span>' % message,))
 
 
 def stacked_widget_set(stacked, widget):
+    logger.debug(f"stacked_widget_set: Clearing {stacked.count()} widgets and adding {widget.__class__.__name__}")
     while stacked.count() > 0:
         stacked.removeWidget(stacked.currentWidget())
     stacked.addWidget(widget)
     widget.setParent(stacked)
     widget.show()
+    logger.info(f"stacked_widget_set: New widget {widget.__class__.__name__} set successfully.")
 
 
 def selection_to_array(sel: QtCore.QModelIndex) -> "[int]":
     if sel.parent().parent() == sel.parent():
+        logger.debug(f"selection_to_array: Single-level selection -> {result}")
         return [sel.row()]
 
     l = selection_to_array(sel.parent())
     l.append(sel.row())
+    logger.debug(f"selection_to_array: Current selection path -> {l}")
     return l
 
 
