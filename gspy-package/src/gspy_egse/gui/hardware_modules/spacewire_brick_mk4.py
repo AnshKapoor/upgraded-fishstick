@@ -68,7 +68,7 @@ class SpaceWireBrickMk4(ISpaceWireBridge):
             if self.firstDevice is None:
                 # dummy as brickmk4 device
                 self.firstDevice = Device(65536)
-                print("creating dummy device for software demonstration purpose")
+                print("Creating dummy device for software demonstration purpose")
                 self.dummy = True
             print(f"{self.dummy=}")
         except (STARAPIError, TypeError, ValueError):

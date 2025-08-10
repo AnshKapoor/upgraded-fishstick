@@ -199,6 +199,8 @@ def getDevice(self) -> Optional[List[str]]:
     # Get the list of available SpaceWire devices.
     starSystem = STARSystem()
 
+    print("Entering in getDevice()")
+
     try:
         devices = starSystem.getDeviceList()
     except (STARAPIError, TypeError, ValueError) as err:
