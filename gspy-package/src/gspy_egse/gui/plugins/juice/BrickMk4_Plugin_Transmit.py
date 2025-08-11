@@ -38,7 +38,7 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
     def __init__(self, *args, **kwargs):
         self.spw, self.connection = (None,) * 2
         super().__init__(*args, plugin_name="SpaceWire", ext_cls=SpaceWireConnection, singleton=False, **kwargs)
-        
+
     def _delay_init(self, extension=None, _=False):
         self.addressBuffer = []
         self.packetDataBuffer = []
@@ -78,6 +78,7 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
     def load_dummy(self):
         """
         loads dummy state from file, determined and written in hwmodules spacewire_brick_mk4.py
+
         dummy True means no connected device, but UI shows anyway with limited functionality for demonstration purpose
         """
         pass
@@ -123,7 +124,7 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
         tmpPacketDataBuffer = [random.randint(0, 255) for _ in range(buffer_length)]
         self.appendToPacketDataBuffer(tmpPacketDataBuffer)
         print("arbitary Buffer with settings packet size loaded")
-                
+
     def fileTransfer(self):
         self.clearPacketDataBuffer()
         selected_file = ""
@@ -136,9 +137,9 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
             if file_paths:
                 selected_file = file_paths[0]
                 self.selectedFileLabel.setText(f"Selected File: {selected_file}")
-                
+
         print(f"selected file is: {selected_file}")
-        
+
         if selected_file:
             with open(selected_file, 'r') as file_:
                 data_as_string = file_.read()
@@ -147,15 +148,15 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
             bytesList = bytes.fromhex(cleanedText)
             intList = list(bytesList)
             self.appendToPacketDataBuffer(intList)
-            print("FileData Buffer loaded")        
-            
+            print("FileData Buffer loaded")
+
     def send(self):
         self.clearAddressBuffer()
         self.appendToAddressBuffer(self.connection.spw_dest_addr.value)
         if self.tabWidget.currentIndex() == 2:
             self.clearPacketDataBuffer()
             self.userData()
-    
+
         self.spw.spw_send(self.packetDataBuffer,self.addressBuffer)
 
     def displayResults(self, Transmitresult, dataThroughPut, totalDuration, receivedPackage):
@@ -199,7 +200,7 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
         # Removal of non-hexadecimal characters
         cleanedText = ''.join(filter(lambda x: x in '0123456789abcdefABCDEF', input))
         if len(cleanedText) % 2 != 0:
-            cleanedText += '0' 
+            cleanedText += '0'
         return cleanedText
 
     def setFrequency(self):
@@ -214,10 +215,10 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
 
     def getTransmitChannelNumber(self) ->int:
         return self.connection.spw_trans_channel.value
-  
+
     def getReceiveChannelNumber(self) ->int:
         return self.connection.spw_receive_channel.value
-    
+
     def buttonMultiplePacket(self,b):
         if b:
             self.spw.spw_setMultiplePacket(True)
@@ -227,7 +228,7 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
     def appendToPacketDataBuffer(self, data):
         with self.writeOutLock:
             self.packetDataBuffer.extend(data)
-    
+
     def clearPacketDataBuffer(self):
         with self.writeOutLock:
             self.packetDataBuffer.clear()
@@ -235,7 +236,7 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
     def appendToAddressBuffer(self, address):
         with self.writeOutLock:
             self.addressBuffer.append(address)
-    
+
     def clearAddressBuffer(self):
         with self.writeOutLock:
             self.addressBuffer.clear()
@@ -245,7 +246,7 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
         testPacketSizes = list(range(0,512000,1000))
         for packetSizes in testPacketSizes:
             tmpPacketDataBuffer = []
-            self.clearPacketDataBuffer()    
+            self.clearPacketDataBuffer()
             tmpPacketDataBuffer = [random.randint(0, 255) for _ in range(packetSizes)]
             self.appendToPacketDataBuffer(tmpPacketDataBuffer)
             self.send_testing()

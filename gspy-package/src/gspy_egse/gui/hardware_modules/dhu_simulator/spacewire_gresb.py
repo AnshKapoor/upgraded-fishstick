@@ -7,12 +7,13 @@ from gspy_egse.gui.hardware_modules.spacewire import ISpaceWireBridge
 
 class SpaceWireBridgeGresb(ISpaceWireBridge):
     def __init__(self, tcp_ip='127.0.0.1', tcp_port=3000):
+        self.dummy = False
         self.tcp_ip = tcp_ip
         self.tcp_port = tcp_port
         self.tx_open = False
         self.rx_open = False
-        self.tx_s = None  # type: socket.socket | None
-        self.rx_s = None  # type: socket.socket | None
+        self.tx_s = None  # type: socket.socket
+        self.rx_s = None  # type: socket.socket
         self.timeout = 5.0
 
         self.lock = threading.Lock()

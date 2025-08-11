@@ -1,46 +1,68 @@
-import socket
-import struct
-from packet import parse_tc_packet
-from service1 import generate_tm_responses
+# test_client_pus.py
+import struct, time
+from spacewire_gresb import SpaceWireBridgeGresb  # 仍然用你的桥（外层4B长度 framing）
+from public import build_pus_tc, parse_ccsds_pus
 
-def handle_connection(conn, addr):
-    print(f"[DHU] Connected from {addr}")
-    try:
-        while True:
-            length_prefix = conn.recv(2)
-            if not length_prefix:
-                break
-            (tc_len,) = struct.unpack(">H", length_prefix)
-            tc_data = conn.recv(tc_len)
-            if not tc_data:
-                break
+ACK_ACCEPTANCE = 0b0001
+ACK_START      = 0b0010
+ACK_PROGRESS   = 0b0100
+ACK_COMPLETION = 0b1000
 
-            print(f"[DHU] Received TC ({tc_len} bytes)")
-            try:
-                tc = parse_tc_packet(tc_data)
-                print(f"[DHU] Parsed TC: APID={tc.apid}, ACK={bin(tc.ack)}, Seq={tc.seq_count}")
-                tm_packets = generate_tm_responses(tc)
-                for tm in tm_packets:
-                    tm_len = len(tm)
-                    conn.sendall(struct.pack(">H", tm_len) + tm)
-                    print(f"[DHU] Sent TM[{tm[7]},{tm[8]}] ({tm_len} bytes)")
-            except Exception as e:
-                print(f"[DHU] Error: {e}")
+def tcp_send_with_len(bridge: SpaceWireBridgeGresb, payload: bytes):
+    bridge.send(payload)
 
-    finally:
-        conn.close()
-        print(f"[DHU] Disconnected: {addr}")
+def main():
+    bridge = SpaceWireBridgeGresb("127.0.0.1", 3000)
+    bridge.open()
+    if not bridge.is_open:
+        print("Bridge open failed")
+        return
 
+    apid = 0x0042
+    seq  = 1
+    src  = 0x1234
+    steps = 3
+    ack = ACK_ACCEPTANCE | ACK_START | ACK_PROGRESS | ACK_COMPLETION
 
-def run_dhu_server(host='0.0.0.0', port=5000):
-    print(f"[DHU] Starting DHU Simulator on {host}:{port}")
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
-        server.bind((host, port))
-        server.listen()
-        while True:
-            conn, addr = server.accept()
-            handle_connection(conn, addr)
+    # 把 steps 放在 TC 的应用数据首字节
+    tc = build_pus_tc(apid, seq, service=1, subservice=0,
+                      ack_nibble=ack, source_id=src, app_data=bytes([steps]))
+    print(f"[Client] Send PUS TC Svc1: apid={apid} seq={seq} ack={ack:04b} steps={steps}")
+    tcp_send_with_len(bridge, tc)
 
+    expected = []
+    if ack & ACK_ACCEPTANCE: expected.append(1)
+    if ack & ACK_START:      expected.append(3)
+    if ack & ACK_PROGRESS:   expected.extend([5]*max(1, steps))
+    if ack & ACK_COMPLETION: expected.append(7)
+
+    deadline = time.time() + 5.0
+    while expected and time.time() < deadline:
+        tm = bridge.receive()
+        if not tm:
+            continue
+        parsed = parse_ccsds_pus(tm)
+        if not parsed or parsed["primary"]["pkt_type"] != 0:
+            print("[Client] Non-TM or parse fail"); continue
+        pri, pus, app = parsed["primary"], parsed["pus"], parsed["app_data"]
+        sub = pus["subservice"]
+        if sub == 5 and app:
+            print(f"[Client] TM[1,5] step={app[0]}")
+        else:
+            print(f"[Client] TM[1,{sub}]")
+
+        # 消耗一个期望
+        if expected and expected[0] == sub:
+            expected.pop(0)
+        elif sub == 5 and 5 in expected:
+            expected.remove(5)
+
+    if not expected:
+        print("[Client] Service 1 flow complete ✅")
+    else:
+        print("[Client] Missing:", expected)
+
+    bridge.close()
 
 if __name__ == "__main__":
-    run_dhu_server()
+    main()
