@@ -105,7 +105,7 @@ The integration of the Onyx SPI connector is dependent on .NET .dll files and us
 
 The figure below illustrates the first block structure for the latest version of GSpy.
 
-![GSPy block structure](figures/gspy_blocks.png)
+![GSPy block structure](documentation/gspy_blocks.png)
 
 # GSpy-GUI
 The GSpy GUI package contains a miminum working version of the GUI environment aiming to be a foundation for a new plugin loading system.
