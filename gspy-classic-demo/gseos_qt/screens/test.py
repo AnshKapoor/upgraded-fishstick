@@ -1,2 +1,0 @@
-SCREEN_NAME = "Test 1"
-VERSION = 1
