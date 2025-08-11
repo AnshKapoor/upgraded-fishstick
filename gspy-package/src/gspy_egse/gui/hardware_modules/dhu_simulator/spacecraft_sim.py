@@ -1,6 +1,6 @@
 # mock_spw_server_pus.py
 import socket, threading, struct, time
-from public import build_pus_tm, parse_ccsds_pus
+from pus_ccsds import build_pus_tm, parse_ccsds_pus
 
 ACK_ACCEPTANCE = 0b0001
 ACK_START      = 0b0010

@@ -1,7 +1,7 @@
 # test_client_pus.py
 import struct, time
-from spacewire_gresb import SpaceWireBridgeGresb  # 仍然用你的桥（外层4B长度 framing）
-from public import build_pus_tc, parse_ccsds_pus
+from gspy_egse.gui.hardware_modules.spacewire_gresb import SpaceWireBridgeGresb
+from pus_ccsds import build_pus_tc, parse_ccsds_pus
 
 ACK_ACCEPTANCE = 0b0001
 ACK_START      = 0b0010
@@ -24,7 +24,6 @@ def main():
     steps = 3
     ack = ACK_ACCEPTANCE | ACK_START | ACK_PROGRESS | ACK_COMPLETION
 
-    # 把 steps 放在 TC 的应用数据首字节
     tc = build_pus_tc(apid, seq, service=1, subservice=0,
                       ack_nibble=ack, source_id=src, app_data=bytes([steps]))
     print(f"[Client] Send PUS TC Svc1: apid={apid} seq={seq} ack={ack:04b} steps={steps}")
@@ -51,7 +50,6 @@ def main():
         else:
             print(f"[Client] TM[1,{sub}]")
 
-        # 消耗一个期望
         if expected and expected[0] == sub:
             expected.pop(0)
         elif sub == 5 and 5 in expected:
