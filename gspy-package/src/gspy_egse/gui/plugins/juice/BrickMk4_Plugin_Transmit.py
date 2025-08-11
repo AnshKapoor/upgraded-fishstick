@@ -81,9 +81,10 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
         dummy True means no connected device, but UI shows anyway with limited functionality for demonstration purpose
         """
         pass
-        # with open('dummymode.json', 'rt') as f:
-        #     data = json.load(f)
-        # self.dummy = data["dummymode"]
+    
+        with open('dummymode.json', 'rt') as f:
+            data = json.load(f)
+        self.dummy = data["dummymode"]
 
     def update_ui(self):
         """
