@@ -40,20 +40,20 @@ class RecorderWindow(QMainWindow):
         self.ui = loadUi("src/gspy_egse/gui/ui/recorder.ui", self)
         self.list_record: QListView = self.list_record
         self.list_play: QListView = self.list_play
-        self.play.setIcon(qta.icon("fa.play", color="green"))
+        self.play.setIcon(qta.icon("fa6s.play", color="green"))
         self.play.setText("")
         self.play.clicked.connect(self.play_click)
-        self.f_forward.setIcon(qta.icon("fa.fast-forward", color="green"))
+        self.f_forward.setIcon(qta.icon("fa6s.forward-fast", color="green"))
         self.f_forward.setText("")
         self.f_forward.clicked.connect(self.f_forward_click)
-        self.record.setIcon(qta.icon("fa.circle", color="red"))
+        self.record.setIcon(qta.icon("fa6s.circle", color="red"))
         self.record.setText("")
         self.record.clicked.connect(self.record_click)
-        self.stop.setIcon(qta.icon("fa.stop"))
+        self.stop.setIcon(qta.icon("fa6s.stop"))
         self.stop.setText("")
         self.stop.clicked.connect(self.stop_click)
         self.stop.setEnabled(False)
-        self.step.setIcon(qta.icon("fa.step-forward", color="orange"))
+        self.step.setIcon(qta.icon("fa6s.forward-step", color="orange"))
         self.step.setText("")
         self.step.clicked.connect(self.step_click)
 
@@ -123,13 +123,13 @@ class RecorderWindow(QMainWindow):
     @pyqtSlot()
     def record_click(self):
         if glob.Recorder.is_recording:
-            self.record.setIcon(qta.icon("fa.circle", color="red"))
+            self.record.setIcon(qta.icon("fa6s.circle", color="red"))
             self.play.setEnabled(True)
             self.f_forward.setEnabled(True)
             self.step.setEnabled(True)
             glob.Recorder.stop_recording()
         else:
-            self.record.setIcon(qta.icon("fa.stop", color="red"))
+            self.record.setIcon(qta.icon("fa6s.stop"))
             self.play.setEnabled(False)
             self.f_forward.setEnabled(False)
             self.step.setEnabled(False)
@@ -147,7 +147,7 @@ class RecorderWindow(QMainWindow):
 
     @pyqtSlot()
     def finished(self):
-        self.play.setIcon(qta.icon("fa.play", color="green"))
+        self.play.setIcon(qta.icon("fa6s.play", color="green"))
         self.play.setEnabled(True)
         self.f_forward.setEnabled(True)
         self.step.setEnabled(True)
@@ -167,12 +167,12 @@ class RecorderWindow(QMainWindow):
         self.stop.setEnabled(True)
         self.list_play.setEnabled(False)
         if glob.Recorder.is_playing_back and not glob.Recorder.is_paused:
-            self.play.setIcon(qta.icon("fa.play", color="green"))
+            self.play.setIcon(qta.icon("fa6s.play", color="green"))
             self.f_forward.setEnabled(True)
             self.step.setEnabled(True)
             glob.Recorder.pause_playback()
         else:
-            self.play.setIcon(qta.icon("fa.pause", color="green"))
+            self.play.setIcon(qta.icon("fa6s.pause", color="green"))
             self.f_forward.setEnabled(False)
             self.step.setEnabled(False)
             if glob.Recorder.is_paused:
