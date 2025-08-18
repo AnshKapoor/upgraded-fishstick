@@ -21,6 +21,9 @@ _GSpy Next might prove to be an appropriate basis for further development. It co
 - create venv: C:\Users\<user>\AppData\Local\Programs\Python\Python313\python.exe" -m venv venv
 - update pip (in venv dir): python.exe -m pip install --upgrade pip
 - install dependencies into venv: pip install strictyaml path numpy dill
+- For the SpaceWire Brick Mk4, the driver needs to be installed
+  - Some Linux-based systems require cryptographic signing by a trusted key in order to be loaded. After installing USB, PCI and PCIe drivers for Linux with Secure Boot enabled, the SpaceWire Brick MK4 works. 
+  - The GSpy package was tested for connection with the Brick MK4 on Ubuntu 22.04 and Windows 10/11
 
 ## Configuration
 - GSpy Next Core is configured through the config.yaml file
