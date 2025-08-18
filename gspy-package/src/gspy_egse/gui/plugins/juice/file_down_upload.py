@@ -105,17 +105,12 @@ class FileDownUploadWidget(WidgetWithExtension, Recordable):
 
         self.make_settings_btn(self.settingsButton)
 
-        # TODO This might be a problem as the dialog keeps reappearing as the ActivationListener gets activated from the result of the file selection
-        self.manual_deletes.add(ActivationListener(
-            self.down_local_input,
+        self.down_file_select_button.clicked.connect(
             lambda: select_file(self._filename_down.set, self.filepath_down.parent.absolute, create_new=True)
-        ))
-
-        # TODO This might be a problem as the dialog keeps reappearing as the ActivationListener gets activated from the result of the file selection
-        self.manual_deletes.add(ActivationListener(
-            self.up_local_input,
+        )
+        self.up_file_select_button.clicked.connect(
             lambda: select_file(self._filename_up.set, self.filepath_up.parent.absolute)
-        ))
+        )
 
         self.down_button.clicked.connect(self.start_download)
         self.up_button.clicked.connect(self.start_upload)
