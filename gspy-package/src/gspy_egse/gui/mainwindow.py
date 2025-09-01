@@ -5,7 +5,8 @@ from contextlib import suppress
 from typing import *
 
 import logging
-logger = logging.getLogger(__name__)
+
+logging.basicConfig(level=logging.DEBUG)
 
 from gspy_egse.gui.branding import *
 from gspy_egse.gui.utils.misc import Extendable
@@ -25,6 +26,7 @@ global recorder
 recorder = Recorder()
 MAIN_FILE_PATH = None
 
+
 class MessageHandler(QtCore.QObject):
     def __init__(self, box: QtWidgets.QTextBrowser, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -36,7 +38,6 @@ class MessageHandler(QtCore.QObject):
         self._l = [ResizeListener(self.box, self.post_scroll),
                    PaintListener(self.box, self.pre_scroll)]
         self.pre_scroll()
-        logger.info("MessageHandler initialized with QTextBrowser.")
 
     def pre_scroll(self):
         try:
@@ -47,74 +48,61 @@ class MessageHandler(QtCore.QObject):
         self._do_scroll = False
         if scroll.value() >= self._stale_max:
             self._do_scroll = True
-        logger.debug(f"pre_scroll: do_scroll={self._do_scroll}, stale_max={self._stale_max}")
 
     def post_scroll(self):
         try:
             scroll = self.box.verticalScrollBar()
         except (Exception,):
-            logger.debug("post_scroll: QTextBrowser scrollbar not available.")
             return
 
         if self._do_scroll:
             scroll.setValue(scroll.maximum())
         self._stale_max = scroll.maximum()
-        logger.debug(f"post_scroll: scroll position set to {self._stale_max}")
 
     def a_add_lines(self):
         self.pre_scroll()
         while len(self.lines):
             line = self.lines[0]
             self.box.append(line)
-            logger.info(f"MessageHandler added line: {line[:60]}{'...' if len(line)>60 else ''}")
             del self.lines[0]
         self.post_scroll()
 
     def warning(self, message):
-        logger.warning(f"GUI Warning: {message}")
         call_in_main_thread(self.box.append, (
             '<span style="white-space: pre"><span style="color:orange">[Warning]</span> %s</span>' % message,))
 
     def error(self, message):
-        logger.error(f"GUI Error: {message}")
         call_in_main_thread(self.box.append, (
             '<span style="white-space: pre"><span style="color:red   ">[Error]</span>   %s</span>' % message,))
 
     def info(self, message):
-        logger.info(f"GUI Info: {message}")
         call_in_main_thread(self.box.append, (
             '<span style="white-space: pre"><span style="color:blue  ">[Info]</span>    %s</span>' % message,))
 
     def success(self, message):
-        logger.info(f"GUI Success: {message}")
         call_in_main_thread(self.box.append, (
             '<span style="white-space: pre"><span style="color:green ">[Success]</span> %s</span>' % message,))
 
 
 def stacked_widget_set(stacked, widget):
-    logger.debug(f"stacked_widget_set: Clearing {stacked.count()} widgets and adding {widget.__class__.__name__}")
     while stacked.count() > 0:
         stacked.removeWidget(stacked.currentWidget())
     stacked.addWidget(widget)
     widget.setParent(stacked)
     widget.show()
-    logger.info(f"stacked_widget_set: New widget {widget.__class__.__name__} set successfully.")
 
 
 def selection_to_array(sel: QtCore.QModelIndex) -> "[int]":
     if sel.parent().parent() == sel.parent():
-        logger.debug(f"selection_to_array: Single-level selection -> {result}")
         return [sel.row()]
 
     l = selection_to_array(sel.parent())
     l.append(sel.row())
-    logger.debug(f"selection_to_array: Current selection path -> {l}")
     return l
 
 
 class DetachedWindow(QtWidgets.QMainWindow):
     def __init__(self, window: "MyMainWindow", widget: QtWidgets.QWidget, selection, name, *args, **kwargs):
-        logger.info(f"Creating DetachedWindow for widget {widget.__class__.__name__} with selection {selection} and name '{name}'")
         self.initialized = False
         # self.i = 0
         # self.llast_event = None
@@ -139,22 +127,17 @@ class DetachedWindow(QtWidgets.QMainWindow):
         self.setGeometry(geo)
         self.move(pos)
         self.show()
-        logger.debug("DetachedWindow shown on screen.")
         if os.name == 'nt' or os.name == 'WINDOWS_NT':
             self.hide()
             self.show()
-            logger.debug("DetachedWindow forced show() on Windows for proper rendering.")
 
         with suppress(Exception):
             # noinspection PyUnresolvedReferences
             self.widget.handle_detach()
         widget.show()
         self.initialized = True
-        logger.info(f"DetachedWindow initialized for {name}.")
 
     def event(self, q_event: QtCore.QEvent):
-        event_type = q_event.type()
-        logger.debug(f"DetachedWindow event received: type={event_type}")
         p_e = QtCore.QEvent.Paint
         m_e = QtCore.QEvent.Move
         u_e = QtCore.QEvent.UpdateRequest
@@ -165,7 +148,6 @@ class DetachedWindow(QtWidgets.QMainWindow):
         if not self.initialized or q_event.type() in [216, p_e, u_e, z_o_c, l_r]:
             return QtWidgets.QMainWindow.event(self, q_event)
         if q_event.type() == c_e:
-            logger.info("DetachedWindow close event triggered.")
             self.initialized = False
             if self.widget is not None:
                 if not self.saved:
@@ -176,16 +158,13 @@ class DetachedWindow(QtWidgets.QMainWindow):
             if self.main_window is not None:
                 self.main_window.windows.remove(self)
                 self.main_window = None
-            logger.debug("DetachedWindow cleanup completed after close event.")
             return QtWidgets.QMainWindow.event(self, q_event)
         if not self.dragging and self.last_event == m_e and q_event.type() == m_e:
             if self.main_window.isVisible() and not self.main_window.isMinimized():
-                logger.debug("DetachedWindow starting drag with drop hint fade-in.")
                 self.main_window.drop_hint.fade_in()
                 self.dragging = True
                 self.main_window.raise_()
         elif self.dragging and q_event.type() != m_e:
-            logger.debug("DetachedWindow drag finished; checking reattach.")
             self.dragging = False
             self.main_window.drop_hint.fade_out()
             if self.main_window.drop_hint.mouse_inside:
@@ -202,7 +181,6 @@ class DetachedWindow(QtWidgets.QMainWindow):
         return QtWidgets.QMainWindow.event(self, q_event)
 
     def reattach(self):
-        logger.info(f"Reattaching DetachedWindow widget {self.name} to main window.")
         self.initialized = False
         if self.main_window is not None:
             self.main_window.set_widget(self.widget)
@@ -216,10 +194,8 @@ class DetachedWindow(QtWidgets.QMainWindow):
 
         self.widget = None
         self.deleteLater()
-        logger.debug(f"DetachedWindow for {self.name} successfully reattached and deleted.")
 
     def to_variant(self):
-        logger.debug(f"Saving DetachedWindow state for widget '{self.name}'.")
         self.saved = True
         try:
             identifier = self.widget.identifier
@@ -515,9 +491,9 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         return selection_item
 
     def restore_panels(self):
-        
+
         logging.debug('Restore panels function. \n')
-        
+
         with suppress(Exception):
             self.tree_widget.deleteLater()
         with suppress(Exception):
@@ -532,7 +508,7 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         self.bottom_dock.setWidget(self.bottom_widget)
         self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.bottom_dock)
         self.message_handler = MessageHandler(self.bottom_widget.textBrowser)
-        
+
         global recorder
         recorder.set_message_handler(self.message_handler)
 
@@ -551,7 +527,6 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         self.tree_dock.setWidget(self.tree_widget)
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.tree_dock)
 
-    
     def load_plugins(self, plugin_path=None, package="gspy_egse.gui.plugins"):
         import importlib
         import importlib.resources
@@ -647,7 +622,6 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
 
         logging.info("[load_screens] Finished loading screens.")
 
-
     def module_to_item(self, module_name, is_package, package):
         """
         Loads a screen module or package and returns a QItemPluginItem or QItemPluginFolder.
@@ -691,7 +665,6 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
             folder_item.appendRow(child_item)
 
         return folder_item
-
 
     def show(self):
         QtWidgets.QMainWindow.show(self)

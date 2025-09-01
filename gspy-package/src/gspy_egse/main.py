@@ -21,7 +21,7 @@ def run(argv: List[str] | None = None) -> None:
     """
     if argv is None:                     # called by setuptools wrapper
         argv = sys.argv
-        
+
     logger.info("Starting GSPY GUI application...")
     logger.debug(f"Arguments received: {argv}")
     # -- lazy imports keep startup time minimal ----------------------------

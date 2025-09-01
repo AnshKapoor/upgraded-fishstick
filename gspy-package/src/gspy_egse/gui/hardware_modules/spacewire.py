@@ -110,7 +110,7 @@ class SpaceWire(Extendable):
 
         if self.spw_dest_addr is not None and isinstance(self.spw_dest_addr, list) is False:
             self.spw_dest_addr = [self.spw_dest_addr]
-        
+
         self.spw_raw.send(sdata, self.spw_dest_addr)
 
     def _cmd_substitute(self, code, sub_code=None) -> (int, int):
@@ -170,9 +170,9 @@ class SpaceWire(Extendable):
     def receive_thread(self):
         """
         with self.thread_lock:
-        This mechanism ensures that only one part of the code (one thread) 
-        can access the critical section protected by the lock at any given time. 
-        Other threads trying to access the same section will be blocked until 
+        This mechanism ensures that only one part of the code (one thread)
+        can access the critical section protected by the lock at any given time.
+        Other threads trying to access the same section will be blocked until
         the lock is released by the thread that currently holds it.
         """
 
