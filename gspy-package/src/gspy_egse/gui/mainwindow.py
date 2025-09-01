@@ -5,6 +5,7 @@ from contextlib import suppress
 from typing import *
 
 import logging
+
 logging.basicConfig(level=logging.DEBUG)
 
 from gspy_egse.gui.branding import *
@@ -24,6 +25,7 @@ from pathlib import Path
 global recorder
 recorder = Recorder()
 MAIN_FILE_PATH = None
+
 
 class MessageHandler(QtCore.QObject):
     def __init__(self, box: QtWidgets.QTextBrowser, *args, **kwargs):
@@ -489,9 +491,9 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         return selection_item
 
     def restore_panels(self):
-        
+
         logging.debug('Restore panels function. \n')
-        
+
         with suppress(Exception):
             self.tree_widget.deleteLater()
         with suppress(Exception):
@@ -506,7 +508,7 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         self.bottom_dock.setWidget(self.bottom_widget)
         self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.bottom_dock)
         self.message_handler = MessageHandler(self.bottom_widget.textBrowser)
-        
+
         global recorder
         recorder.set_message_handler(self.message_handler)
 
@@ -525,7 +527,6 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         self.tree_dock.setWidget(self.tree_widget)
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.tree_dock)
 
-    
     def load_plugins(self, plugin_path=None, package="gspy_egse.gui.plugins"):
         import importlib
         import importlib.resources
@@ -621,7 +622,6 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
 
         logging.info("[load_screens] Finished loading screens.")
 
-
     def module_to_item(self, module_name, is_package, package):
         """
         Loads a screen module or package and returns a QItemPluginItem or QItemPluginFolder.
@@ -665,7 +665,6 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
             folder_item.appendRow(child_item)
 
         return folder_item
-
 
     def show(self):
         QtWidgets.QMainWindow.show(self)
