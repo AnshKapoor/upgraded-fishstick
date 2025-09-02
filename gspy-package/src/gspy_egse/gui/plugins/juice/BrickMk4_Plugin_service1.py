@@ -57,17 +57,19 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
         self.pushButton_3.clicked.connect(lambda: self._prepare_and_send(5))  # TM[1,5]
         self.pushButton_4.clicked.connect(lambda: self._prepare_and_send(7))  # TM[1,7]
 
-        self.FreqSet.clicked.connect(self.setFrequency)
-        self.resetButton.clicked.connect(self.resetDevice)
 
+        # self.FreqSet.clicked.connect(self.setFrequency)
+        self.resetButton.clicked.connect(self.resetDevice)
         self.spw.spw.spw_raw.signalEmitter.dataReceived.connect(self.displayResults)
 
-        self.getFrequency()
+        # self.getFrequency()
         self.update_ui()
+
         deviceName = self.spw.getDeviceName()
         if not self.dummy:
             self.comboBox.addItem(deviceName)
         self.storage = TransmitResultStorage()
+
         self.make_settings_btn(self.settingsButton)
 
     def load_dummy(self):
@@ -77,9 +79,9 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
         dummy True means no connected device, but UI shows anyway with limited functionality for demonstration purpose
         """
         pass
-        # with open('dummymode.json', 'rt') as f:
-        #     data = json.load(f)
-        # self.dummy = data["dummymode"]
+        with open('dummymode.json', 'rt') as f:
+            data = json.load(f)
+        self.dummy = data["dummymode"]
 
     def _build_tm_packet(self, subservice: int, step_id: int | None = None) -> bytes:
         version = 0
@@ -124,15 +126,21 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
         self.spw.spw_send(self.packetDataBuffer, self.addressBuffer)
 
     def update_ui(self):
+        """
+                updates ui to disable or enable functionality depending on whether dummy_mode is on or off
+                """
         self.load_dummy()
-        state = not self.dummy
-        if self.dummy:
-            self.comboBox.clear()
-            self.comboBox.addItem("SpaceWire Brick Mk4 Dummy")
-        else:
-            self.comboBox.setItemText(0, self.spw.getDeviceName())
 
-        self.FreqSet.setEnabled(state)
+        if self.dummy:
+            state = False
+            # self.comboBox.clear()
+            # self.comboBox.addItem("SpaceWire Brick Mk4 Dummy")
+        else:
+            state = True
+            # self.comboBox.setItemText(0, self.spw.getDeviceName())
+        print(f"{self.dummy=} {state=}")
+
+        # self.FreqSet.setEnabled(state)
         self.settingsButton.setEnabled(state)
         for btn_name in ("pushButton", "pushButton_2", "pushButton_3", "pushButton_4"):
             if hasattr(self, btn_name):
@@ -141,7 +149,7 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
     def resetDevice(self):
         self.spw.spw_resetDevice()
         self.set_to_default_settings()
-        self.getFrequency()
+        # self.getFrequency()
 
         self.update_ui()
         return
@@ -200,15 +208,15 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
         self.plainTextEdit.insertPlainText(hex_string_with_spaces + " ")
 
 
-    def setFrequency(self):
-        self.spw.spw_setTransmitSignallingRate(self.connection.spw_Link_1_output_clock_rate.value, 1)
-        self.spw.spw_setTransmitSignallingRate(self.connection.spw_Link_2_output_clock_rate.value, 2)
-        self.getFrequency()
+    # def setFrequency(self):
+    #     self.spw.spw_setTransmitSignallingRate(self.connection.spw_Link_1_output_clock_rate.value, 1)
+    #     self.spw.spw_setTransmitSignallingRate(self.connection.spw_Link_2_output_clock_rate.value, 2)
+    #     self.getFrequency()
 
-    def getFrequency(self):
-        transmitClockLink_1, transmitClockLink_2 = self.spw.spw_getTransmitSignallingRate()
-        self.link_1_freq.setText(f"Link 1 Signaling Rate: {transmitClockLink_1} Mbps")
-        self.link_2_freq.setText(f"Link 2 Signaling Rate: {transmitClockLink_2} Mbps")
+    # def getFrequency(self):
+    #     transmitClockLink_1, transmitClockLink_2 = self.spw.spw_getTransmitSignallingRate()
+    #     self.link_1_freq.setText(f"Link 1 Signaling Rate: {transmitClockLink_1} Mbps")
+    #     self.link_2_freq.setText(f"Link 2 Signaling Rate: {transmitClockLink_2} Mbps")
 
     def getTransmitChannelNumber(self) ->int:
         return self.connection.spw_trans_channel.value
