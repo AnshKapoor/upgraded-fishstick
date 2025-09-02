@@ -1,4 +1,3 @@
-from os import MFD_ALLOW_SEALING
 from gspy_egse.gui.utils.pus_parser import parse_tm_packet
 from PyQt6 import QtCore, QtWidgets, QtGui, uic
 from pathlib import Path
