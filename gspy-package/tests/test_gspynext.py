@@ -5,20 +5,20 @@
 import pytest
 
 
-from gspynext import gspynext
+# Assuming getDevice is properly exposed in the utilities module
+from gspy_egse.gui.utils.utilities import getDevice
 
-
-@pytest.fixture
-def response():
-    """Sample pytest fixture.
-
-    See more at: http://doc.pytest.org/en/latest/fixture.html
+def test_get_device_returns_devices_or_none():
     """
-    # import requests
-    # return requests.get('https://github.com/audreyr/cookiecutter-pypackage')
+    Test that getDevice() returns a list of devices or None.
+    """
+    device_list = getDevice
 
-
-def test_content(response):
-    """Sample pytest test function with the pytest fixture as an argument."""
-    # from bs4 import BeautifulSoup
-    # assert 'GitHub' in BeautifulSoup(response.content).title.string
+    # If device_list is None, skip test (no hardware connected)
+    if device_list is None:
+        pytest.skip("No SpaceWire devices connected or STARSystem error.")
+    
+    # Otherwise, assert it's a non-empty list of strings
+    assert isinstance(device_list, list), "getDevice should return a list"
+    assert all(isinstance(dev, str) for dev in device_list), "All items should be strings"
+    assert len(device_list) > 0, "Device list should not be empty"

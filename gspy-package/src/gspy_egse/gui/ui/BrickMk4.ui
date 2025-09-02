@@ -158,7 +158,7 @@
      <item>
       <widget class="QLabel" name="DeviceLabel">
        <property name="text">
-        <string>available Device:</string>
+        <string>Available Device:</string>
        </property>
       </widget>
      </item>
