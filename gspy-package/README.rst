@@ -2,39 +2,151 @@
 GSpy-egse Python Package
 ========================
 
-.. image:: https://img.shields.io/pypi/v/gspyegse.svg
-   :target: https://pypi.python.org/pypi/gspyegse
-
-.. image:: https://img.shields.io/travis/none/gspyegse.svg
-   :target: https://travis-ci.com/none/gspyegse
-
-.. image:: https://readthedocs.org/projects/gspyegse/badge/?version=latest
-   :target: https://gspyegse.readthedocs.io/en/latest/?version=latest
-   :alt: Documentation Status
 
 GSpy is a Python package for the verification of space instruments.
 
 - Free software: BSD License
 - Documentation: https://gspy-egse.readthedocs.io
 
-Installation
-------------
-
+Normal (user) installation
+--------------------------
 1. Clone this repository.
-2. Create and activate a new Python virtual environment.
-3. From the root folder of the cloned repository, install the package with GUI support:
+2. Create and activate a Python virtual environment.
+3. From the repo root, install with GUI extras:
 
    .. code-block:: bash
 
       pip install .[gui]
 
-4. After installation completes, launch the GSpy GUI with:
+4. Launch the GUI:
 
    .. code-block:: bash
 
       gspy-egse-gui
 
-Demo GUI (2025-06-23)
+Editable (dev) installation
+---------------------------
+Use this if you plan to **modify the source** and see changes immediately (no reinstall needed).
+
+.. code-block:: bash
+
+   # from the repo root
+   pip install -e .[dev]      # dev extras: lint/test tools, etc.
+   # or minimal editable install:
+   pip install -e .
+
+Launch the GUI (same command):
+
+.. code-block:: bash
+
+   gspy-egse-gui
+
+Using the Makefile
+------------------
+The repository includes a Makefile with common tasks. Run ``make help`` to see a summary.
+
+.. code-block:: bash
+
+   make help
+
+Common targets:
+
+- **Install (user mode):**
+
+  .. code-block:: bash
+
+     make install          # equivalent to: pip install .
+
+- **Install (editable/dev mode):**
+
+  .. code-block:: bash
+
+     make install-dev      # equivalent to: pip install -e .
+
+- **Quality & tests:**
+
+  .. code-block:: bash
+
+     make lint             # flake8 on package + tests
+     make test             # pytest
+     make coverage         # coverage HTML report and open it
+
+- **Clean build/test artifacts:**
+
+  .. code-block:: bash
+
+     make clean            # removes build/, dist/, *.egg-info, __pycache__, etc.
+
+- **Build distributions (sdist + wheel):**
+
+  .. code-block:: bash
+
+     make dist
+
+- **Publish to PyPI (requires credentials & twine):**
+
+  .. code-block:: bash
+
+     make release
+
+Windows: using the Makefile
+---------------------------
+Windows doesn’t ship with ``make`` by default. Choose **one** of the following:
+
+1. **Git Bash + GNU Make (Chocolatey):**
+
+   - Install Git for Windows (includes Git Bash).
+   - Install make via Chocolatey:
+
+     .. code-block:: bash
+
+        choco install make
+
+   - In **Git Bash**, run your Makefile commands:
+
+     .. code-block:: bash
+
+        make help
+        make install
+        make install-dev
+
+2. **MSYS2:**
+
+   - Install MSYS2, then:
+
+     .. code-block:: bash
+
+        pacman -S make
+
+   - Use the MSYS2 shell to run ``make`` targets.
+
+3. **Windows Subsystem for Linux (WSL):**
+
+   - In your WSL distro (e.g., Ubuntu):
+
+     .. code-block:: bash
+
+        sudo apt update && sudo apt install make
+
+   - Run the same ``make`` commands inside WSL.
+
+Notes for Windows users
+-----------------------
+- If ``python`` maps to the Windows launcher, you can explicitly use it:
+
+  .. code-block:: bash
+
+     py -m pip install -e .[dev]
+
+- Ensure your virtual environment is **activated** in the shell you use to run ``make``.
+- If GUI shortcuts aren’t on PATH, you can still launch via:
+
+  .. code-block:: bash
+
+     python -m gspy_egse.gui
+
+
+Demo GUI
 ---------------------
 .. 
 .. image:: figures/gspy-gui-demo16Jun.png
