@@ -2,9 +2,11 @@
 
 ## Setting up debugging/development environment
 
-## Adding a new view 
-- Create UI File with Qt designer (not the newer Studio)
-- ...
+## Including the DHU simulator into a custom view
+- Create "simulator.py" file into "/screens" folder, add the simulator into the GUI.
+- Create "service1.ui" file into "/ui" folder with Qt designer, implement the button layout for the simulator.
+- Create "BrickMk4_Plugin_service1.py" file into "/plugins/juice" folder, bind the buttons to background tasks.
+- Create "pus_parser.py" file into "/utils" folder, implement the parsing of TM message.
 
 ## Including SpaceWire into a custom view
 - Use WidgetWithExtension, take BrickMk4_Plugin_Transmit.py as an example
