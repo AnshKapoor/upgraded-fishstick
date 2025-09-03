@@ -32,7 +32,7 @@ class RequirePlugins(WidgetWithExtension): #background task is super important
         ], **kwargs)
 
 
-class BrickMk4Widget(WidgetWithExtension, Recordable):
+class BrickMk4Service1Widget(WidgetWithExtension, Recordable):
     """
     :type spw: BrickMk4_HW_Transmit
     :type connection: SpaceWireConnection
@@ -56,7 +56,7 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
         self.pushButton_2.clicked.connect(lambda: self._prepare_and_send(3))  # TM[1,3]
         self.pushButton_3.clicked.connect(lambda: self._prepare_and_send(5))  # TM[1,5]
         self.pushButton_4.clicked.connect(lambda: self._prepare_and_send(7))  # TM[1,7]
-
+        self.make_settings_btn(self.settingsButton)
 
         # self.FreqSet.clicked.connect(self.setFrequency)
         self.resetButton.clicked.connect(self.resetDevice)
@@ -70,7 +70,7 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
             self.comboBox.addItem(deviceName)
         self.storage = TransmitResultStorage()
 
-        self.make_settings_btn(self.settingsButton)
+
 
     def load_dummy(self):
         """
@@ -127,8 +127,8 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
 
     def update_ui(self):
         """
-                updates ui to disable or enable functionality depending on whether dummy_mode is on or off
-                """
+        updates ui to disable or enable functionality depending on whether dummy_mode is on or off
+        """
         self.load_dummy()
 
         if self.dummy:
@@ -142,9 +142,10 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
 
         # self.FreqSet.setEnabled(state)
         self.settingsButton.setEnabled(state)
-        for btn_name in ("pushButton", "pushButton_2", "pushButton_3", "pushButton_4"):
-            if hasattr(self, btn_name):
-                getattr(self, btn_name).setEnabled(state)
+        self.pushButton.setEnabled(state)
+        self.pushButton_2.setEnabled(state)
+        self.pushButton_3.setEnabled(state)
+        self.pushButton_4.setEnabled(state)
 
     def resetDevice(self):
         self.spw.spw_resetDevice()
