@@ -37,7 +37,7 @@ class RecorderWindow(QMainWindow):
         super().__init__(*args, **kwargs)
         from .widget import select_file
 
-        self.ui = loadUi("src/gspy_egse/gui/ui/recorder.ui", self)
+        self.ui = loadUi("gspy_egse/gui/ui/recorder.ui", self)
         self.list_record: QListView = self.list_record
         self.list_play: QListView = self.list_play
         self.play.setIcon(qta.icon("fa6s.play", color="green"))

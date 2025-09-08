@@ -1,6 +1,10 @@
 from PyQt6 import QtCore, QtWidgets, QtGui, uic
 from gspy_egse.gui.utils.widget import expand_rect, shrink_rect
 
+from importlib.resources import files, as_file  # stdlib, Python ≥3.9
+
+pkg = "gspy_egse.gui.ui"
+ui_name = "drophint.ui"
 
 class DropHint(QtWidgets.QWidget):
     def __init__(self, *args):
@@ -12,7 +16,11 @@ class DropHint(QtWidgets.QWidget):
         QtWidgets.QWidget.__init__(self, *args)
         self.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
         self.dpi_scale = self.logicalDpiX() / 96.0
-        self.ui = uic.loadUi("src/gspy_egse/gui/ui/drophint.ui", self)
+        
+        ui_res = files(pkg).joinpath(ui_name)
+        with as_file(ui_res) as ui_path:
+            self.ui = uic.loadUi(str(ui_path), self)
+        # self.ui = uic.loadUi("gspy_egse/gui/ui/drophint.ui", self)
         self.blue = QtGui.QColor(80, 80, 255, 128)
 
         self.label_icon.setText(chr(0xf2d2))

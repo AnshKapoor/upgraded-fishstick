@@ -1,4 +1,4 @@
-# src/gspy_egse/gui/main.py
+# gspy_egse/gui/main.py
 import os, platform, sys, logging
 from datetime import datetime
 from typing import List

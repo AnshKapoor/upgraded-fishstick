@@ -1,6 +1,10 @@
 from PyQt6 import QtCore, QtWidgets, uic
 from .consolewidget import ConsoleWidget
 
+from importlib.resources import files, as_file  # stdlib, Python ≥3.9
+
+pkg = "gspy_egse.gui.ui"
+ui_name = "tabwidget.ui"
 
 def stackedWidgetSet(stacked, widget):
     while stacked.count() > 0:
@@ -11,5 +15,9 @@ def stackedWidgetSet(stacked, widget):
 class BottomWidget(QtWidgets.QWidget):
     def __init__(self, *args):
         QtWidgets.QWidget.__init__(self, *args)
-        self.ui = uic.loadUi("src/gspy_egse/gui/ui/tabwidget.ui", self)
+
+        ui_res = files(pkg).joinpath(ui_name)
+        with as_file(ui_res) as ui_path:
+            self.ui = uic.loadUi(str(ui_path), self)
+        # self.ui = uic.loadUi("gspy_egse/gui/ui/tabwidget.ui", self)
         stackedWidgetSet(self.consoleWidget, ConsoleWidget())
