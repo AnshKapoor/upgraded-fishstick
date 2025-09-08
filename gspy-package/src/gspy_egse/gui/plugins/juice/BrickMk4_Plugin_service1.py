@@ -149,7 +149,7 @@ class BrickMk4Service1Widget(WidgetWithExtension, Recordable):
             # self.comboBox.setItemText(0, self.spw.getDeviceName())
         print(f"{self.dummy=} {state=}")
 
-        # self.FreqSet.setEnabled(state)
+        self.FreqSet.setEnabled(state)
         self.settingsButton.setEnabled(state)
         self.pushButton.setEnabled(state)
         self.pushButton_2.setEnabled(state)

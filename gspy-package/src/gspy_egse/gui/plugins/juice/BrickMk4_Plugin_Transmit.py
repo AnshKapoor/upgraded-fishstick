@@ -115,7 +115,7 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
         self.FreqSet.setEnabled(state)
         self.settingsButton.setEnabled(state)
         self.pushButton_Transmit.setEnabled(state)
-        # self.testingButton.setEnabled(state)
+        self.testingButton.setEnabled(state)
         self.pushButton_preDefinedData.setEnabled(state)
         self.pushButton_File.setEnabled(state)
 
