@@ -26,7 +26,7 @@ except ImportError:
 from importlib.resources import files, as_file  # stdlib, Python ≥3.9
 
 pkg = "gspy_egse.gui.ui"
-ui_name = "BrickMk4.ui.ui"
+ui_name = "BrickMk4.ui"
 
 
 class RequirePlugins(WidgetWithExtension): #background task is super important
