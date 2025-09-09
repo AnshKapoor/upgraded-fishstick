@@ -66,7 +66,7 @@ The `pus_parser.py` module parses **CCSDS** primary headers and **PUS (Packet Ut
 
 ## Including SpaceWire into a custom view
 
-The implementation 
+The implementation of SpaceWire in a custom view is described in the DHU simulator implementation. GSpy contains a screen for testing the BrickMK4 connection, SpaceWire Testing. This window's layout is defined in the file `ui/BrickMK4.ui`. The plugin `juice/BrickMk4_Plugin_Transmit.py` implements raw communication over the BrickMK4. The layout and functionalities can be customized by creating a new files, as shown above for the DHU simulator.
 
 ## Including the Power Supply into a view
 
