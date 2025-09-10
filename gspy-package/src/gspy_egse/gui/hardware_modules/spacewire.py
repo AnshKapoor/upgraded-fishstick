@@ -14,6 +14,7 @@ from typing import *
 
 from gspy_egse.gui.utils.misc import WrappedMessageHandler, Extendable, call_async
 from gspy_egse.gui.hardware_modules.spacewire_events import SpwEvents
+from ..utils.externalRecorder import external_recorder, ExternalEvent
 
 class ISpaceWireBridge:
     def open(self): raise NotImplementedError
@@ -112,6 +113,10 @@ class SpaceWire(Extendable):
             self.spw_dest_addr = [self.spw_dest_addr]
 
         self.spw_raw.send(sdata, self.spw_dest_addr)
+        # record outgoing message
+        external_recorder.record(
+            ExternalEvent(time.time(), "out", "space-wire", list(sdata))
+        )
 
     def _cmd_substitute(self, code, sub_code=None) -> (int, int):
         if sub_code is None:
@@ -218,6 +223,10 @@ class SpaceWire(Extendable):
         else:
             message = self.try_raw_listeners(message)
             # self.download_complete.set()
+        if message:
+            external_recorder.record(
+                ExternalEvent(time.time(), "in", "space-wire", list(message))
+            )
         return message
 
     def message_decode(self, message):
