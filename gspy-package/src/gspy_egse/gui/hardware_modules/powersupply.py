@@ -6,8 +6,9 @@ import threading
 try:
     from ..utils.misc import WrappedMessageHandler
 except (ValueError, ImportError):
-    from utils.misc import WrappedMessageHandler
+    from ..utils.misc import WrappedMessageHandler
 
+from ..utils.externalRecorder import external_recorder, ExternalEvent
 
 def is_float_try(s_str):
     try:
@@ -171,6 +172,10 @@ class PowerSupply:
             else:
                 command += ';'
             self.ser.write(command.encode('utf-8'))
+            # record outgoing power-supply command
+            external_recorder.record(
+                ExternalEvent(time.time(), "out", "power", command.strip())
+            )
             if not execute or not wait_reply:
                 return
             start = time.time()
