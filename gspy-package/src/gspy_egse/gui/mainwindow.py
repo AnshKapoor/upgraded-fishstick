@@ -16,6 +16,7 @@ from gspy_egse.gui.widgets.bottomwidget import BottomWidget
 from gspy_egse.gui.widgets.drophint import DropHint
 from gspy_egse.gui.utils.widget import async_in_main_thread, ResizeListener, PaintListener
 from gspy_egse.gui.utils.recorder import RecorderWindow, Recorder
+from gspy_egse.gui.utils.externalRecorder import ExternalRecorderWindow
 
 import importlib
 import importlib.util
@@ -303,7 +304,7 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
 
         dh = self.drop_hint = DropHint(self)
         dh.setGeometry(self.rect())
-
+        QtCore.QTimer.singleShot(0, self._open_external_recorder)
         if "--refresh-config" in argv:
             QtCore.QSettings(COMPANY, PRODUCT).clear()
         if "--corrupt-config" in argv:
@@ -316,6 +317,10 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
             async_in_main_thread(self.restore_settings)
         else:
             QtCore.QTimer(self).singleShot(500, self.read_settings)
+
+    def _open_external_recorder(self) -> None:
+        """Show the External Recorder popup when the main window starts."""
+        self.external_recorder_window = ExternalRecorderWindow()
 
     def show_recorder(self):
         try:
