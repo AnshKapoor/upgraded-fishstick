@@ -8,6 +8,8 @@ try:
 except (ValueError, ImportError):
     from utils.misc import WrappedMessageHandler
 
+from ..utils.external_recorder import external_recorder, ExternalEvent
+
 
 def is_float_try(s_str):
     try:
@@ -171,6 +173,10 @@ class PowerSupply:
             else:
                 command += ';'
             self.ser.write(command.encode('utf-8'))
+            # record outgoing power-supply command
+            external_recorder.record(
+                ExternalEvent(time.time(), "out", "power", command.strip())
+            )
             if not execute or not wait_reply:
                 return
             start = time.time()
@@ -192,8 +198,11 @@ class PowerSupply:
                         return ''
             else:
                 return ''
-
-            return out[:-1].decode()
+            reply = out[:-1].decode()
+            external_recorder.record(
+                ExternalEvent(time.time(), "in", "power", reply)
+            )
+            return reply
 
     def set_state_to_device(self, value, channel=1):
         self.send_command("op%d %d" % (channel, value), expected_lines=0)
