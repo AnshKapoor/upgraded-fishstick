@@ -16,10 +16,10 @@ from PyQt6.QtGui import *
 from functools import wraps
 from contextlib import suppress
 from gspy_egse.gui.utils.misc import WrappedMessageHandler, call_async
-
+import logging
 RECORDING_FILTER = "GSpy Recording (*.gspy)"
 
-
+logger = logging.getLogger(__name__)
 class StolenObject:
     def __init__(self, original, intercept, replacement):
         self.original = original
@@ -114,7 +114,12 @@ class RecorderWindow(QMainWindow):
         self.list_play.setModel(glob.Recorder.recording.play_items_model)
         self.record_name.setText(glob.Recorder.recording.name)
 
+    @pyqtSlot(QCloseEvent)
     def closeEvent(self, *args, **kwargs):
+        if hasattr(glob, "Settings") and glob.Settings is not None:
+            logger.debug("Settings present: %s", type(glob.Settings))
+        else:
+            logger.warning("No Settings object in glob")
         glob.Settings.setValue("recorder_geometry", self.saveGeometry())
         glob.Recorder.m_h = glob.Recorder.m_h.original
         self.deleteLater()

@@ -3,7 +3,8 @@ import os, platform, sys, logging
 from datetime import datetime
 from typing import List
 from contextlib import suppress
-
+from PyQt6.QtCore import QSettings
+import gspy_egse.gui.globalvars as glob
 # Setup logger
 os.makedirs("logs", exist_ok=True)
 log_filename = datetime.now().strftime("logs/%Y-%m-%d_%H-%M-%S.log")
@@ -58,7 +59,7 @@ def run(argv: List[str] | None = None) -> None:
     app.setWindowIcon(CusIcon(f":/icon{'-beta' if not production else ''}.png"))
     app.processEvents()
     logger.debug("Main window icon set and events processed.")
-
+    glob.Settings = QSettings(COMPANY, PRODUCT)
     delay_in_main_thread(50,
         lambda: MyMainWindow(argv, splash=splash, main_file_path=os.path.abspath(__file__)).show()
     )
