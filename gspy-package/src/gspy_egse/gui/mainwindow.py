@@ -280,6 +280,7 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         QtGui.QFontDatabase.addApplicationFont(":/FontAwesome_new.ttf")
 
         self.record_window = None
+        self.external_recorder_window = None # For the external window
         self.model = QStandardItemModel()
         self.message_handler = None  # type: MessageHandler
         self.current_widget = None  # type: QtWidgets.QWidget
@@ -301,6 +302,7 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         self.actionRestore_Panels.triggered.connect(self.restore_panels)
         self.actionDetach.triggered.connect(self.detach_screen)
         self.actionRecorder.triggered.connect(self.show_recorder)
+        self.actionExternalRecorder.triggered.connect(self.show_external_recorder)
 
         dh = self.drop_hint = DropHint(self)
         dh.setGeometry(self.rect())
@@ -331,6 +333,15 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
             self.record_window.show()
             self.record_window.raise_()
 
+    def show_external_recorder(self) -> None:
+        if self.external_recorder_window is None:
+            self.external_recorder_window = ExternalRecorderWindow()
+            self.external_recorder_window.destroyed.connect(
+                lambda: setattr(self, "external_recorder_window", None)
+            )
+        self.external_recorder_window.show()
+        self.external_recorder_window.raise_()
+        self.external_recorder_window.activateWindow()
     def restore_settings(self):
         """
         Asks the user if he wants to reset his settings

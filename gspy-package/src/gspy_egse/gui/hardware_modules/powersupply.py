@@ -198,7 +198,11 @@ class PowerSupply:
             else:
                 return ''
 
-            return out[:-1].decode()
+            reply = out[:-1].decode()
+            external_recorder.record(
+                ExternalEvent(time.time(), "in", "power", reply)
+            )
+            return reply
 
     def set_state_to_device(self, value, channel=1):
         self.send_command("op%d %d" % (channel, value), expected_lines=0)
