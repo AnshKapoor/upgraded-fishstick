@@ -23,6 +23,12 @@ except ImportError:
     Image = None  # or handle gracefully
 
 
+from importlib.resources import files, as_file  # stdlib, Python ≥3.9
+
+pkg = "gspy_egse.gui.ui"
+ui_name = "BrickMk4.ui"
+
+
 class RequirePlugins(WidgetWithExtension): #background task is super important
     def __init__(self, *args, **kwargs):
         super().__init__(*args, ext_cls=SpaceWireConnection, identifier="_", sub_exts=[
@@ -47,7 +53,11 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
         self.writeOutLock = threading.Lock()
         print(f"connection for BrickMk4 is: {extension}")
         self.spw = self.connection.hardware #hardware = BrickMk4_HW_Transmit
-        self.ui = uic.loadUi("src/gspy_egse/gui/ui/BrickMk4.ui", self)
+        
+        ui_res = files(pkg).joinpath(ui_name)
+        with as_file(ui_res) as ui_path:
+            self.ui = uic.loadUi(str(ui_path), self)
+        # self.ui = uic.loadUi("gspy_egse/gui/ui/BrickMk4.ui", self)
         self.getFrequency()
 
         self.pushButton_preDefinedData.clicked.connect(self.simpleTransfer)
@@ -105,7 +115,7 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
         self.FreqSet.setEnabled(state)
         self.settingsButton.setEnabled(state)
         self.pushButton_Transmit.setEnabled(state)
-        # self.testingButton.setEnabled(state)
+        self.testingButton.setEnabled(state)
         self.pushButton_preDefinedData.setEnabled(state)
         self.pushButton_File.setEnabled(state)
 

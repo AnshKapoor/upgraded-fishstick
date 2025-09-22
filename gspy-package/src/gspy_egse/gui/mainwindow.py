@@ -21,12 +21,18 @@ from gspy_egse.gui.utils.externalRecorder import ExternalRecorderWindow
 import importlib
 import importlib.util
 import importlib.resources
+from importlib.resources import files, as_file  # stdlib, Python ≥3.9
+
 from pathlib import Path
 
 global recorder
 recorder = Recorder()
 MAIN_FILE_PATH = None
 
+
+# Put your .ui files in: src/gspy_egse/gui/resources/  (must be a package with __init__.py)
+pkg = "gspy_egse.gui.ui"
+ui_name = "mainwindow.ui"
 
 class MessageHandler(QtCore.QObject):
     def __init__(self, box: QtWidgets.QTextBrowser, *args, **kwargs):
@@ -293,7 +299,13 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         self.background_tasks = []
         self.windows: List[QtWidgets.QMainWindow] = []
         self.setCorner(QtCore.Qt.BottomLeftCorner, QtCore.Qt.LeftDockWidgetArea)
-        self.ui = uic.loadUi("src/gspy_egse/gui/ui/mainwindow.ui", self)
+
+        ui_res = files(pkg).joinpath(ui_name)
+        with as_file(ui_res) as ui_path:
+            self.ui = uic.loadUi(str(ui_path), self)
+
+        # self.ui = uic.loadUi("src/gspy_egse/gui/ui/mainwindow.ui", self)
+        
         self.setWindowTitle(PRODUCT)
         self.stackedWidget = QtWidgets.QStackedWidget()
         self.setCentralWidget(self.stackedWidget)
