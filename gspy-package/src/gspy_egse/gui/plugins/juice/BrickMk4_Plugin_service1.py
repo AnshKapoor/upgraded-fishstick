@@ -24,6 +24,11 @@ try:
 except ImportError:
     Image = None  # or handle gracefully
 
+from importlib.resources import files, as_file  # stdlib, Python ≥3.9
+
+pkg = "gspy_egse.gui.ui"
+ui_name = "service1.ui"
+
 
 class RequirePlugins(WidgetWithExtension): #background task is super important
     def __init__(self, *args, **kwargs):
@@ -49,7 +54,11 @@ class BrickMk4Service1Widget(WidgetWithExtension, Recordable):
         self.writeOutLock = threading.Lock()
         print(f"connection for BrickMk4 is: {extension}")
         self.spw = self.connection.hardware
-        self.ui = uic.loadUi("src/gspy_egse/gui/ui/service1.ui", self)
+        
+        ui_res = files(pkg).joinpath(ui_name)
+        with as_file(ui_res) as ui_path:
+            self.ui = uic.loadUi(str(ui_path), self)
+        # self.ui = uic.loadUi("gspy_egse/gui/ui/service1.ui", self)
         self._step_counter = 0
 
         self.pushButton.clicked.connect(lambda: self._prepare_and_send(1))  # TM[1,1]
@@ -140,7 +149,7 @@ class BrickMk4Service1Widget(WidgetWithExtension, Recordable):
             # self.comboBox.setItemText(0, self.spw.getDeviceName())
         print(f"{self.dummy=} {state=}")
 
-        # self.FreqSet.setEnabled(state)
+        self.FreqSet.setEnabled(state)
         self.settingsButton.setEnabled(state)
         self.pushButton.setEnabled(state)
         self.pushButton_2.setEnabled(state)

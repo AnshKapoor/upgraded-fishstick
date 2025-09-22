@@ -13,6 +13,11 @@ from gspy_egse.gui.utils.widget import expand_widget, SplitterWithSettings, re_p
 from gspy_egse.gui.utils.plugin import Setting, ObjectWithSettings, WidgetWithExtension
 from gspy_egse.gui.utils.recorder import Recordable
 
+from importlib.resources import files, as_file  # stdlib, Python ≥3.9
+
+pkg = "gspy_egse.gui.ui"
+ui_name = "powersupplywidget.ui"
+
 class PowerSupplyConnection(QtCore.QObject, ObjectWithSettings, Recordable):
     def __init__(self, window: Extendable, *args, **kwargs):
         print(f"powersupply.py: PowerSupplyConnection.__init__")
@@ -194,7 +199,11 @@ class PowerSupplyWidget(WidgetWithExtension):
         c = self.connection = extension  # type: PowerSupplyConnection
 
         (default_channel, default_view) = self._params
-        self.ui = uic.loadUi("src/gspy_egse/gui/ui/powersupplywidget.ui", self)
+        
+        ui_res = files(pkg).joinpath(ui_name)
+        with as_file(ui_res) as ui_path:
+            self.ui = uic.loadUi(str(ui_path), self)
+        # self.ui = uic.loadUi("gspy_egse/gui/ui/powersupplywidget.ui", self)
         pg.setConfigOption('background', 'w')
         pg.setConfigOption('foreground', 'k')
         self.v_plot = pg.PlotWidget(self)

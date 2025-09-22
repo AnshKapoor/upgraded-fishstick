@@ -12,6 +12,11 @@ from gspy_egse.gui.utils.widget import expand_widget, SplitterWithSettings, re_p
 from gspy_egse.gui.utils.plugin import Setting, ObjectWithSettings, WidgetWithExtension
 from gspy_egse.gui.utils.recorder import Recordable
 
+from importlib.resources import files, as_file  # stdlib, Python ≥3.9
+
+pkg = "gspy_egse.gui.ui"
+ui_name = "spiInterface.ui"
+
 class SpiInterfaceConnection(QtCore.QObject, ObjectWithSettings, Recordable):
     def __init__(self, window: Extendable, *args, **kwargs):
         with suppress(Exception):
@@ -89,7 +94,11 @@ class SpiInterfaceWidget(WidgetWithExtension):
         self.connection = extension  # type: SpiInterfaceConnection
 
         self.message_handler = WrappedMessageHandler(None, "SPI Interface")
-        self.ui = uic.loadUi("src/gspy_egse/gui/ui/spiInterface.ui", self)
+        
+        ui_res = files(pkg).joinpath(ui_name)
+        with as_file(ui_res) as ui_path:
+            self.ui = uic.loadUi(str(ui_path), self)
+        # self.ui = uic.loadUi("gspy_egse/gui/ui/spiInterface.ui", self)
         self.pushButton_File.clicked.connect(self.fileTransfer)      
         self.pushButton_Transmit.clicked.connect(self.write)
         self.slaveReadButton.clicked.connect(self.read)

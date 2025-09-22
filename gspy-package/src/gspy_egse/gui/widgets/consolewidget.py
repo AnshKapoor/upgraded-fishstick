@@ -5,6 +5,10 @@ import io
 from PyQt6 import QtWidgets, uic, QtGui
 from PyQt6.QtCore import pyqtSlot
 
+from importlib.resources import files, as_file  # stdlib, Python ≥3.9
+
+pkg = "gspy_egse.gui.ui"
+ui_name = "consolewidget.ui"
 
 def buffer_pop(s: io.StringIO) -> str:
     s.flush()
@@ -23,7 +27,11 @@ def append_no_newline(edit: QtWidgets.QTextEdit, s: str):
 class ConsoleWidget(QtWidgets.QWidget):
     def __init__(self, *args):
         QtWidgets.QWidget.__init__(self, *args)
-        self.ui = uic.loadUi("src/gspy_egse/gui/ui/consolewidget.ui", self)
+        
+        ui_res = files(pkg).joinpath(ui_name)
+        with as_file(ui_res) as ui_path:
+            self.ui = uic.loadUi(str(ui_path), self)
+        # self.ui = uic.loadUi("gspy_egse/gui/ui/consolewidget.ui", self)
         self.buffer = io.StringIO()
         self.interpreter = GseConsole(sout=self.buffer)
         self.lineEdit = self.lineEditWidget  # type: QtWidgets.QLineEdit
