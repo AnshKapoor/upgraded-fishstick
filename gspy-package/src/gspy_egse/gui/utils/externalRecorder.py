@@ -172,6 +172,7 @@ class ExternalRecorderWindow(QMainWindow):
             self.record_btn.setIcon(qta.icon("fa6s.circle", color="red"))
             self.play_btn.setEnabled(True)
             self.step_btn.setEnabled(True)
+            external_recorder.save("external_recorder.gspy")
         else:
             external_recorder.start()
             self.record_btn.setIcon(qta.icon("fa6s.stop"))
