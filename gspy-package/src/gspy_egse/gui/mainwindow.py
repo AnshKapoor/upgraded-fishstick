@@ -318,7 +318,6 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
 
         dh = self.drop_hint = DropHint(self)
         dh.setGeometry(self.rect())
-        QtCore.QTimer.singleShot(0, self._open_external_recorder)
         if "--refresh-config" in argv:
             QtCore.QSettings(COMPANY, PRODUCT).clear()
         if "--corrupt-config" in argv:
@@ -331,10 +330,6 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
             async_in_main_thread(self.restore_settings)
         else:
             QtCore.QTimer(self).singleShot(500, self.read_settings)
-
-    def _open_external_recorder(self) -> None:
-        """Show the External Recorder popup when the main window starts."""
-        self.external_recorder_window = ExternalRecorderWindow()
 
     def show_recorder(self):
         try:
