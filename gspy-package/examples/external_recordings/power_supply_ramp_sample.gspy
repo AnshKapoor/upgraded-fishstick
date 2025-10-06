@@ -1,0 +1,8 @@
+{"ts": 0.0, "direction": "out", "kind": "power", "payload": "V1 3.300"}
+{"ts": 0.35, "direction": "in", "kind": "power", "payload": "OK"}
+{"ts": 0.4, "direction": "out", "kind": "power", "payload": "I1 0.250"}
+{"ts": 0.75, "direction": "in", "kind": "power", "payload": "OK"}
+{"ts": 0.9, "direction": "out", "kind": "power", "payload": "OP1 1"}
+{"ts": 1.2, "direction": "in", "kind": "power", "payload": "STAT1 ON 3.30V 0.25A"}
+{"ts": 1.6, "direction": "out", "kind": "power", "payload": "MEAS1?"}
+{"ts": 1.95, "direction": "in", "kind": "power", "payload": "3.29V 0.24A"}
