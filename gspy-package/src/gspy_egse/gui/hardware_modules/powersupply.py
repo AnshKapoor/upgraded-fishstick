@@ -1,5 +1,6 @@
 import time
 import serial
+import logging
 from contextlib import suppress
 import threading
 
@@ -9,6 +10,8 @@ except (ValueError, ImportError):
     from ..utils.misc import WrappedMessageHandler
 
 from ..utils.externalRecorder import external_recorder, ExternalEvent
+
+logger = logging.getLogger(__name__)
 
 def is_float_try(s_str):
     try:
@@ -45,6 +48,10 @@ class PowerSupply:
         self.voltage_out_listeners = [[] for _ in range(channels)]
         self.intensity_out_listeners = [[] for _ in range(channels)]
 
+        self._external_handler_registered = False
+        external_recorder.register_handler("power", self._handle_external_event)
+        self._external_handler_registered = True
+
         try:
             self.ser = serial.Serial(
                 port=port,
@@ -73,7 +80,10 @@ class PowerSupply:
     def close(self):
         self.polling = False
         self.polling_interval = 1
-        threading.Thread(target=self.free_and_close).start()
+        if getattr(self, "_external_handler_registered", False):
+            external_recorder.unregister_handler("power", self._handle_external_event)
+            self._external_handler_registered = False
+        threading.Thread(target=self.free_and_close, daemon=True).start()
         self.message_handler.info("Closing connection.")
 
     def free_and_close(self):
@@ -282,6 +292,67 @@ class PowerSupply:
                 print("flushing inbuffer")
                 self.ser.read(self.ser.inWaiting())
 
+
+    def _handle_external_event(self, event: ExternalEvent) -> None:
+        if event.kind != "power" or not external_recorder.is_replaying:
+            return
+        if event.direction == "out":
+            command = str(event.payload)
+            threading.Thread(target=self._replay_outgoing_command, args=(command,), daemon=True).start()
+        else:
+            reply = str(event.payload)
+            threading.Thread(target=self._apply_replay_reply, args=(reply,), daemon=True).start()
+
+    def _replay_outgoing_command(self, command: str) -> None:
+        command = command.strip()
+        if not command:
+            return
+        logger.info("Replaying power command: %s", command)
+        self.message_handler.info(f"[Replay] {command}")
+        try:
+            self._send_command(command, execute=True, wait_reply=False, expected_lines=0)
+        except Exception:
+            logger.exception("Failed to replay power command: %s", command)
+
+    def _apply_replay_reply(self, reply: str) -> None:
+        reply = reply.strip()
+        if not reply:
+            return
+        logger.info("Replaying power reply: %s", reply)
+        self.message_handler.info(f"[Replay] {reply}")
+        tokens = reply.replace(',', ' ').split()
+        if not tokens:
+            return
+        try:
+            channel = 1
+            head = tokens[0]
+            digits = ''.join(ch for ch in head if ch.isdigit())
+            if digits:
+                channel = int(digits)
+            upper_head = head.upper()
+            if upper_head.startswith('STAT'):
+                if len(tokens) > 1:
+                    state_token = tokens[1].upper()
+                    self.set_state(channel, state_token in ('ON', '1', 'TRUE'))
+                for token in tokens[2:]:
+                    upper = token.upper()
+                    if upper.endswith('V'):
+                        with suppress(Exception):
+                            self.set_voltage_out(channel, float(token[:-1]))
+                    elif upper.endswith('A'):
+                        with suppress(Exception):
+                            self.set_intensity_out(channel, float(token[:-1]))
+                return
+            for token in tokens:
+                upper = token.upper()
+                if upper.endswith('V'):
+                    with suppress(Exception):
+                        self.set_voltage_out(channel, float(token[:-1]))
+                elif upper.endswith('A'):
+                    with suppress(Exception):
+                        self.set_intensity_out(channel, float(token[:-1]))
+        except Exception:
+            logger.exception("Failed to process replayed power reply: %s", reply)
 
 class MockupPowerSupply(PowerSupply):
     def __init__(self, *args, **kwargs):
