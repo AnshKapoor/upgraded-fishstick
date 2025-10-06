@@ -122,6 +122,16 @@ class SpaceWire(Extendable):
         if self.spw_dest_addr is not None and isinstance(self.spw_dest_addr, list) is False:
             self.spw_dest_addr = [self.spw_dest_addr]
 
+        if external_recorder.is_replaying:
+            logger.info("Skipping SpaceWire send during replay.")
+            try:
+                preview = ' '.join(f'{byte:02X}' for byte in (sdata[:16] if isinstance(sdata, list) else list(sdata)[:16]))
+                if isinstance(sdata, list) and len(sdata) > 16:
+                    preview += ' ...'
+                self.message_handler.info(f"[Replay] TX {preview or '<empty>'} (suppressed)")
+            except Exception:
+                pass
+            return
         self.spw_raw.send(sdata, self.spw_dest_addr)
         # record outgoing message
         external_recorder.record(
@@ -364,6 +374,16 @@ class SpaceWire(Extendable):
 
     def _send_replay_payload(self, payload: List[int]) -> None:
         if self.spw_raw is None:
+            return
+        if external_recorder.is_replaying:
+            try:
+                preview = ' '.join(f'{byte:02X}' for byte in payload[:16])
+                if len(payload) > 16:
+                    preview += ' ...'
+                self.message_handler.info(f"[Replay] TX {preview or '<empty>'}")
+            except Exception:
+                pass
+            logger.info("Simulated SpaceWire send (%d bytes)", len(payload))
             return
         try:
             self.spw_raw.send(payload, self.spw_dest_addr)
