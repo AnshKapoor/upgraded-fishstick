@@ -20,6 +20,7 @@ from PyQt6.QtWidgets import (
     QToolButton,
     QVBoxLayout,
     QWidget,
+    QSpinBox,
 )
 
 import gspy_egse.gui.globalvars as glob
@@ -59,6 +60,7 @@ class ExternalRecorder(QObject):
         self._replaying = False
         self._idx = 0
         self._pending_delay: Optional[float] = None
+        self._replay_limit_idx: Optional[int] = None
         self._handlers: Dict[str, List[Handler]] = {}
 
 
@@ -177,23 +179,33 @@ class ExternalRecorder(QObject):
         logger.info("Loaded %d external events from %s", len(self.events), p)
         self._pending_delay = 0.0 if self.events else None
 
-    def start_replay(self) -> None:
+
+    def start_replay(self, start_index: int = 0, *, single_event: bool = False) -> None:
         if not self.events:
             self._replaying = False
             self._pending_delay = None
             logger.warning("External recorder replay requested with no events.")
             return
+        count = len(self.events)
+        start_index = max(0, min(start_index, count))
+        if start_index >= count:
+            logger.warning("External recorder start index %d out of range.", start_index)
+            self._replaying = False
+            self._pending_delay = None
+            return
         if not self._replaying:
             self.playback_started.emit()
         self._replaying = True
         self._recording = False
-        self._idx = 0
-        self._pending_delay = 0.0
-        logger.info("External recorder starting playback of %d events.", len(self.events))
+        self._idx = start_index
+        self._replay_limit_idx = start_index + 1 if single_event else None
+        self._pending_delay = 0.0 if self._idx < count else None
+        logger.info("External recorder starting playback of %d events from index %d.", count, self._idx)
 
     def stop_replay(self, finished: bool = False) -> None:
         was_replaying = self._replaying
         self._replaying = False
+        self._replay_limit_idx = None
         self._idx = 0
         self._pending_delay = None
         if finished:
@@ -210,6 +222,7 @@ class ExternalRecorder(QObject):
 
     def jump_to(self, ts: float) -> None:
         """Jump replay pointer to first event >= timestamp."""
+        self._replay_limit_idx = None
         for i, ev in enumerate(self.events):
             if ev.ts >= ts:
                 self._idx = i
@@ -217,6 +230,23 @@ class ExternalRecorder(QObject):
                 return
         self._idx = len(self.events)
         self._pending_delay = None
+
+    def jump_to_index(self, index: int) -> None:
+        """Jump replay pointer to the given event index."""
+        count = len(self.events)
+        if count == 0:
+            self._idx = 0
+            self._pending_delay = None
+            return
+        if index < 0:
+            index = 0
+        if index >= count:
+            self._idx = count
+            self._pending_delay = None
+            return
+        self._idx = index
+        self._pending_delay = 0.0
+        self._replay_limit_idx = None
 
     def step(self) -> Optional[ExternalEvent]:
         """Return next event during replay and emit playback signal."""
@@ -231,7 +261,7 @@ class ExternalRecorder(QObject):
             return None
         ev = self.events[self._idx]
         self._idx += 1
-        if self._idx < len(self.events):
+        if self._idx < len(self.events) and (self._replay_limit_idx is None or self._idx < self._replay_limit_idx):
             next_ev = self.events[self._idx]
             self._pending_delay = max(0.0, next_ev.ts - ev.ts)
         else:
@@ -239,7 +269,9 @@ class ExternalRecorder(QObject):
         self._dispatch_event(ev)
         self._log_event("replayed", ev)
         self.event_replayed.emit(ev)
-        if self._idx >= len(self.events):
+        reached_end = self._idx >= len(self.events)
+        reached_limit = self._replay_limit_idx is not None and self._idx >= self._replay_limit_idx
+        if reached_end or reached_limit:
             self.stop_replay(finished=True)
         return ev
 
@@ -275,6 +307,8 @@ class ExternalRecorderWindow(QMainWindow):
         self._auto_play = False
         self._playback_finished_recently = False
         self._played_events = 0
+        self._pending_single_play_index: Optional[int] = None
+        self._selected_step_index: Optional[int] = None
 
         central = QWidget(self)
         root_layout = QVBoxLayout(central)
@@ -332,6 +366,23 @@ class ExternalRecorderWindow(QMainWindow):
 
         root_layout.addLayout(button_row)
 
+        jump_row = QHBoxLayout()
+        jump_row.setSpacing(8)
+        self.step_selector_label = QLabel("Step:", self)
+        jump_row.addWidget(self.step_selector_label)
+        self.step_selector = QSpinBox(self)
+        self.step_selector.setRange(1, 1)
+        self.step_selector.setEnabled(False)
+        jump_row.addWidget(self.step_selector)
+        self.goto_btn = QPushButton()
+        self.goto_btn.setIcon(qta.icon("fa6s.bullseye", color="orange"))
+        self.goto_btn.setToolTip("Select a step for single playback")
+        self.goto_btn.setEnabled(False)
+        self.goto_btn.clicked.connect(self.jump_to_step)
+        jump_row.addWidget(self.goto_btn)
+        jump_row.addStretch(1)
+        root_layout.addLayout(jump_row)
+
         self.status_label = QLabel("Ready.", self)
         self.status_label.setWordWrap(True)
         root_layout.addWidget(self.status_label)
@@ -366,11 +417,33 @@ class ExternalRecorderWindow(QMainWindow):
     def _set_status(self, text: str) -> None:
         self.status_label.setText(text)
 
+    def _update_step_selector(self) -> None:
+        count = len(external_recorder.events)
+        max_value = max(1, count)
+        self.step_selector.setMaximum(max_value)
+        if count == 0:
+            self.step_selector.setValue(1)
+            self._selected_step_index = None
+            self._pending_single_play_index = None
+        else:
+            if self._selected_step_index is not None:
+                if self._selected_step_index >= count:
+                    self._selected_step_index = count - 1
+                target_value = self._selected_step_index + 1
+                if target_value != self.step_selector.value():
+                    self.step_selector.setValue(target_value)
+            elif self.step_selector.value() > count:
+                self.step_selector.setValue(count)
+        enabled = count > 0 and not external_recorder.is_recording and not external_recorder.is_replaying
+        self.step_selector.setEnabled(enabled)
+        self.goto_btn.setEnabled(enabled)
+
     def _refresh_playback_controls(self) -> None:
         has_events = bool(external_recorder.events)
         self.play_btn.setEnabled(has_events)
         self.step_btn.setEnabled(has_events)
         self.stop_btn.setEnabled(False)
+        self._update_step_selector()
 
     def _clear_logs(self) -> None:
         self.log_view.clear()
@@ -496,6 +569,27 @@ class ExternalRecorderWindow(QMainWindow):
         self._store_record_path(path)
 
     @pyqtSlot()
+    def jump_to_step(self) -> None:
+        if not external_recorder.events:
+            self._set_status("No recorded events to select.")
+            self._append_log("No recorded events to select.")
+            return
+        total = len(external_recorder.events)
+        index = max(0, min(self.step_selector.value() - 1, total - 1))
+        self._selected_step_index = index
+        self._pending_single_play_index = index
+        self._auto_play = False
+        if external_recorder.is_replaying:
+            external_recorder.stop_replay()
+        self._stop_timer()
+        external_recorder.jump_to_index(index)
+        event = external_recorder.events[index]
+        detail = self._describe_event(event)
+        self._set_status(f"Prepared step {index + 1}/{total} for single playback.")
+        self._append_log(f"STEP {index + 1}: {detail}")
+        self._update_step_selector()
+
+    @pyqtSlot()
     def load_click(self) -> None:
         if external_recorder.is_recording:
             return
@@ -540,6 +634,7 @@ class ExternalRecorderWindow(QMainWindow):
             self._set_status(f"No events found in {path.name}.")
         self._clear_logs()
         self._append_log(f"Loaded {count} event{suffix} from {path.name}")
+        self._update_step_selector()
     @pyqtSlot()
     def record_click(self) -> None:
         if external_recorder.is_recording:
@@ -572,6 +667,9 @@ class ExternalRecorderWindow(QMainWindow):
             self._clear_logs()
             self._append_log("Recording started.")
             external_recorder.start()
+            self._selected_step_index = None
+            self._pending_single_play_index = None
+            self._update_step_selector()
             self.record_btn.setIcon(qta.icon("fa6s.stop"))
             self.record_btn.setToolTip("Stop recording")
             self.file_edit.setEnabled(False)
@@ -588,6 +686,24 @@ class ExternalRecorderWindow(QMainWindow):
         if not external_recorder.events:
             self._set_status("No recorded events to play.")
             self._append_log("No recorded events to play.")
+            return
+        if self._pending_single_play_index is not None:
+            total = len(external_recorder.events)
+            index = max(0, min(self._pending_single_play_index, total - 1))
+            self._pending_single_play_index = None
+            if total == 0:
+                self._set_status("No recorded events to play.")
+                self._append_log("No recorded events to play.")
+                return
+            self._auto_play = False
+            self._stop_timer()
+            if external_recorder.is_replaying:
+                external_recorder.stop_replay()
+            external_recorder.start_replay(start_index=index, single_event=True)
+            event = external_recorder.step()
+            if event is None:
+                self._set_status(f"No event at step {index + 1}.")
+                self._append_log(f"Step {index + 1} not available for playback.")
             return
         self._auto_play = True
         if not external_recorder.is_replaying:
@@ -627,6 +743,7 @@ class ExternalRecorderWindow(QMainWindow):
             else:
                 detail = 'Event recorded'
             self._append_log(f"REC {count}: {detail}")
+        self._update_step_selector()
 
     def _on_event_replayed(self, event: object) -> None:
         self._played_events += 1
@@ -659,12 +776,14 @@ class ExternalRecorderWindow(QMainWindow):
         self.stop_btn.setEnabled(True)
         self.load_btn.setEnabled(False)
         self._set_status("Playing back recorded events...")
+        self._update_step_selector()
 
     def _on_playback_finished(self) -> None:
         self._playback_finished_recently = True
         self._set_status("Playback finished.")
         self._append_log("Playback finished.")
         self._stop_timer()
+        self._update_step_selector()
 
     def _on_playback_stopped(self) -> None:
         self._stop_timer()
