@@ -166,6 +166,10 @@ class PowerSupply:
     def send_command(self, command: str, timeout=200, execute=True, wait_reply=True, expected_lines=1):
         # t = time.time()
         r = self._send_command(command, 1000, execute, wait_reply, expected_lines)
+        if external_recorder.is_replaying:
+            return r or ""
+        if not isinstance(r, str):
+            return r
         if self.ser is not None and len(r.splitlines()) != expected_lines:
             self.message_handler.error("Command error: %s expected %d lines but got %s" % (command, expected_lines, r))
 
@@ -174,6 +178,9 @@ class PowerSupply:
     def _send_command(self, command: str, timeout=200, execute=True, wait_reply=True, expected_lines=1):
         if self.ser is None:
             self.message_handler.warning("Cannot send command: not connected.")
+            return ""
+        if external_recorder.is_replaying:
+            logger.info("Skipping power command during replay: %s", command.strip())
             return ""
         with self.send_lock:
             timeout /= 1000
