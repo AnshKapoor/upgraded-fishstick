@@ -4,6 +4,7 @@
 import time
 # import sys
 import struct
+import logging
 # import thread
 import threading  # from Telecommand import *
 # from CCSDS import *
@@ -14,7 +15,9 @@ from typing import *
 
 from gspy_egse.gui.utils.misc import WrappedMessageHandler, Extendable, call_async
 from gspy_egse.gui.hardware_modules.spacewire_events import SpwEvents
-from ..utils.external_recorder import external_recorder, ExternalEvent
+from ..utils.externalRecorder import external_recorder, ExternalEvent
+
+logger = logging.getLogger(__name__)
 
 class ISpaceWireBridge:
     def open(self): raise NotImplementedError
@@ -60,6 +63,9 @@ class SpaceWire(Extendable):
         self.events = SpwEvents()
         self.listeners_raw = []
         self.listeners_decode = []
+        self._external_handler_registered = False
+        self._register_external_recorder_handler()
+
 
     def set_spw_raw_synchronous(self, spw_raw):
         self.do_receive = False
@@ -95,7 +101,11 @@ class SpaceWire(Extendable):
         self.do_receive = False
         with self.thread_lock:
             pass
+        if getattr(self, "_external_handler_registered", False):
+            external_recorder.unregister_handler("space-wire", self._handle_external_replay_event)
+            self._external_handler_registered = False
         self.spw_raw.close()
+
 
     def __del__(self):
         self.close()
@@ -112,7 +122,21 @@ class SpaceWire(Extendable):
         if self.spw_dest_addr is not None and isinstance(self.spw_dest_addr, list) is False:
             self.spw_dest_addr = [self.spw_dest_addr]
 
+        if external_recorder.is_replaying:
+            logger.info("Skipping SpaceWire send during replay.")
+            try:
+                preview = ' '.join(f'{byte:02X}' for byte in (sdata[:16] if isinstance(sdata, list) else list(sdata)[:16]))
+                if isinstance(sdata, list) and len(sdata) > 16:
+                    preview += ' ...'
+                self.message_handler.info(f"[Replay] TX {preview or '<empty>'} (suppressed)")
+            except Exception:
+                pass
+            return
         self.spw_raw.send(sdata, self.spw_dest_addr)
+        # record outgoing message
+        external_recorder.record(
+            ExternalEvent(time.time(), "out", "space-wire", list(sdata))
+        )
 
         # record outgoing message
         external_recorder.record(
@@ -226,7 +250,7 @@ class SpaceWire(Extendable):
             # self.download_complete.set()
         if message:
             external_recorder.record(
-                ExternalEvent(time.time(), "in", "spacewire", list(message))
+                ExternalEvent(time.time(), "in", "space-wire", list(message))
             )
         return message
 
@@ -284,6 +308,93 @@ class SpaceWire(Extendable):
             self.message_handler.error('Undefined packet!')
 
         return message
+
+    def _register_external_recorder_handler(self) -> None:
+        if not getattr(self, "_external_handler_registered", False):
+            external_recorder.register_handler("space-wire", self._handle_external_replay_event)
+            self._external_handler_registered = True
+
+    def _handle_external_replay_event(self, event: ExternalEvent) -> None:
+        if event.kind != "space-wire" or not external_recorder.is_replaying:
+            return
+        if event.direction == "out":
+            payload = self._payload_to_list(event.payload)
+            if payload is None:
+                logger.warning("Unable to replay space-wire 'out' event: %r", event.payload)
+                return
+            call_async(self._send_replay_payload, (payload,))
+        else:
+            message = self._payload_to_bytes(event.payload)
+            if message is None:
+                logger.warning("Unable to replay space-wire 'in' event: %r", event.payload)
+                return
+            call_async(self._deliver_processed_receive, (message,))
+
+    def _deliver_processed_receive(self, payload: bytes) -> None:
+        try:
+            message = payload
+            delivered = False
+            for listener in list(self.listeners_decode):
+                try:
+                    result = listener(message)
+                    if result is not None:
+                        message = result
+                        delivered = True
+                except Exception:
+                    logger.exception("SpaceWire replay listener failed")
+            if not delivered:
+                try:
+                    self.message_handler.info(f"[Replay] RX {message.hex()}")
+                except Exception:
+                    pass
+            logger.info("Replayed SpaceWire receive (%d bytes)", len(message))
+        except Exception:
+            logger.exception("Failed to replay SpaceWire receive")
+
+    @staticmethod
+    def _payload_to_list(payload: Any) -> Optional[List[int]]:
+        if isinstance(payload, list):
+            try:
+                return [int(v) & 0xFF for v in payload]
+            except (TypeError, ValueError):
+                return None
+        if isinstance(payload, (bytes, bytearray)):
+            return list(payload)
+        return None
+
+    @staticmethod
+    def _payload_to_bytes(payload: Any) -> Optional[bytes]:
+        if isinstance(payload, bytes):
+            return payload
+        if isinstance(payload, bytearray):
+            return bytes(payload)
+        if isinstance(payload, list):
+            try:
+                return bytes([int(v) & 0xFF for v in payload])
+            except (TypeError, ValueError):
+                return None
+        if isinstance(payload, str):
+            return payload.encode('utf-8')
+        return None
+
+    def _send_replay_payload(self, payload: List[int]) -> None:
+        if self.spw_raw is None:
+            return
+        if external_recorder.is_replaying:
+            try:
+                preview = ' '.join(f'{byte:02X}' for byte in payload[:16])
+                if len(payload) > 16:
+                    preview += ' ...'
+                self.message_handler.info(f"[Replay] TX {preview or '<empty>'}")
+            except Exception:
+                pass
+            logger.info("Simulated SpaceWire send (%d bytes)", len(payload))
+            return
+        try:
+            self.spw_raw.send(payload, self.spw_dest_addr)
+            logger.info("Replayed SpaceWire send (%d bytes)", len(payload))
+        except Exception:
+            logger.exception("Failed to replay SpaceWire send")
 
     def call_receive_thread_async(self):
         call_async(self.receive_thread)

@@ -20,6 +20,13 @@ from gspy_egse.gui.hardware_modules.juice_lib.ramfs import RamFs
 with suppress(Exception):
     from PIL import Image
 
+
+
+from importlib.resources import files, as_file  # stdlib, Python ≥3.9
+
+pkg = "gspy_egse.gui.ui"
+ui_name = "fileDownUp.ui"
+
 class RequirePlugins(WidgetWithExtension):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, ext_cls=SpaceWireConnection, identifier="_", sub_exts=[
@@ -68,7 +75,10 @@ class FileDownUploadWidget(WidgetWithExtension, Recordable):
         print(f"connection for filedownload is: {self.connection}")
         self.spw = self.connection.hardware #hardware = RecordableSpaceWire-> SpaceWire
 
-        self.ui = uic.loadUi("src/gspy_egse/gui/ui/fileDownUp.ui", self)
+        ui_res = files(pkg).joinpath(ui_name)
+        with as_file(ui_res) as ui_path:
+            self.ui = uic.loadUi(str(ui_path), self)
+        # self.ui = uic.loadUi("gspy_egse/gui/ui/fileDownUp.ui", self)
         self._filename_down = self.add_setting(
             name="filename_down_local",
             default=self._params[0],

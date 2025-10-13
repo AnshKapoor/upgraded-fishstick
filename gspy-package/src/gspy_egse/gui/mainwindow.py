@@ -16,17 +16,23 @@ from gspy_egse.gui.widgets.bottomwidget import BottomWidget
 from gspy_egse.gui.widgets.drophint import DropHint
 from gspy_egse.gui.utils.widget import async_in_main_thread, ResizeListener, PaintListener
 from gspy_egse.gui.utils.recorder import RecorderWindow, Recorder
-from gspy_egse.gui.utils.external_recorder import ExternalRecorderWindow
+from gspy_egse.gui.utils.externalRecorder import ExternalRecorderWindow
 
 import importlib
 import importlib.util
 import importlib.resources
+from importlib.resources import files, as_file  # stdlib, Python ≥3.9
+
 from pathlib import Path
 
 global recorder
 recorder = Recorder()
 MAIN_FILE_PATH = None
 
+
+# Put your .ui files in: src/gspy_egse/gui/resources/  (must be a package with __init__.py)
+pkg = "gspy_egse.gui.ui"
+ui_name = "mainwindow.ui"
 
 class MessageHandler(QtCore.QObject):
     def __init__(self, box: QtWidgets.QTextBrowser, *args, **kwargs):
@@ -280,6 +286,7 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         QtGui.QFontDatabase.addApplicationFont(":/FontAwesome_new.ttf")
 
         self.record_window = None
+        self.external_recorder_window = None # For the external window
         self.model = QStandardItemModel()
         self.message_handler = None  # type: MessageHandler
         self.current_widget = None  # type: QtWidgets.QWidget
@@ -292,7 +299,13 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         self.background_tasks = []
         self.windows: List[QtWidgets.QMainWindow] = []
         self.setCorner(QtCore.Qt.BottomLeftCorner, QtCore.Qt.LeftDockWidgetArea)
-        self.ui = uic.loadUi("src/gspy_egse/gui/ui/mainwindow.ui", self)
+
+        ui_res = files(pkg).joinpath(ui_name)
+        with as_file(ui_res) as ui_path:
+            self.ui = uic.loadUi(str(ui_path), self)
+
+        # self.ui = uic.loadUi("src/gspy_egse/gui/ui/mainwindow.ui", self)
+        
         self.setWindowTitle(PRODUCT)
         self.stackedWidget = QtWidgets.QStackedWidget()
         self.setCentralWidget(self.stackedWidget)
@@ -301,12 +314,10 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         self.actionRestore_Panels.triggered.connect(self.restore_panels)
         self.actionDetach.triggered.connect(self.detach_screen)
         self.actionRecorder.triggered.connect(self.show_recorder)
+        self.actionExternalRecorder.triggered.connect(self.show_external_recorder)
 
         dh = self.drop_hint = DropHint(self)
         dh.setGeometry(self.rect())
-
-        QtCore.QTimer.singleShot(0, self._open_external_recorder)
-
         if "--refresh-config" in argv:
             QtCore.QSettings(COMPANY, PRODUCT).clear()
         if "--corrupt-config" in argv:
@@ -333,6 +344,15 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
             self.record_window.show()
             self.record_window.raise_()
 
+    def show_external_recorder(self) -> None:
+        if self.external_recorder_window is None:
+            self.external_recorder_window = ExternalRecorderWindow()
+            self.external_recorder_window.destroyed.connect(
+                lambda: setattr(self, "external_recorder_window", None)
+            )
+        self.external_recorder_window.show()
+        self.external_recorder_window.raise_()
+        self.external_recorder_window.activateWindow()
     def restore_settings(self):
         """
         Asks the user if he wants to reset his settings
