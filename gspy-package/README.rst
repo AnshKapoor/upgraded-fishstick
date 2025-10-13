@@ -169,3 +169,13 @@ Demo GUI
      - .. image:: figures/gspy-gui-demo23Jun_file.png
          :width: 200px
 
+
+Package Structure
+-----------------
+The project code lives under ``src/gspy_egse`` and is organized into:
+
+* ``main.py`` – CLI entry point that launches the PyQt6 GUI.
+* ``gui/`` – Qt widgets, plugin system, and hardware modules such as SpaceWire and power-supply drivers.
+* ``utils/`` – shared helpers including the external recorder utility.
+* ``tests/`` – pytest suite for hardware and utility components.
+
