@@ -9,6 +9,7 @@ import gzip
 import os
 from typing import *
 from datetime import datetime
+from PyQt6 import QtCore, QtWidgets, QtGui, uic
 from PyQt6.uic import loadUi
 from PyQt6.QtCore import *
 from PyQt6.QtWidgets import *
@@ -18,6 +19,11 @@ from contextlib import suppress
 from gspy_egse.gui.utils.misc import WrappedMessageHandler, call_async
 import logging
 RECORDING_FILTER = "GSpy Recording (*.gspy)"
+
+from importlib.resources import files, as_file  # stdlib, Python ≥3.9
+
+pkg = "gspy_egse.gui.ui"
+ui_name = "recorder.ui"
 
 logger = logging.getLogger(__name__)
 class StolenObject:
@@ -37,7 +43,12 @@ class RecorderWindow(QMainWindow):
         super().__init__(*args, **kwargs)
         from .widget import select_file
 
-        self.ui = loadUi("gspy_egse/gui/ui/recorder.ui", self)
+        ui_res = files(pkg).joinpath(ui_name)
+        with as_file(ui_res) as ui_path:
+            self.ui = uic.loadUi(str(ui_path), self)
+
+        # self.ui = loadUi("gspy_egse/gui/ui/recorder.ui", self)
+
         self.list_record: QListView = self.list_record
         self.list_play: QListView = self.list_play
         self.play.setIcon(qta.icon("fa6s.play", color="green"))
