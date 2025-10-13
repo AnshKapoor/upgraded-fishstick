@@ -1,6 +1,7 @@
 import time
 import serial
 import logging
+from collections import deque
 from contextlib import suppress
 import threading
 
@@ -49,6 +50,8 @@ class PowerSupply:
         self.intensity_out_listeners = [[] for _ in range(channels)]
 
         self._external_handler_registered = False
+        self._replay_expected_replies = deque()
+        self._replay_queue_lock = threading.Lock()
         external_recorder.register_handler("power", self._handle_external_event)
         self._external_handler_registered = True
 
@@ -239,13 +242,38 @@ class PowerSupply:
         return self.set_intensity(channel, value)
 
     def _get_value_from_device(self, value, channel, out, timeout, setter):
+        if external_recorder.is_replaying:
+            with self._replay_queue_lock:
+                self._replay_expected_replies.append((setter, channel, out))
+
         reply = self.send_command("%s%d%s?" % (value, channel, "o" if out else ""), timeout=timeout)
 
-        reply = [float(s[:-1] if out else s) for s in reply.split() if is_float_try(s[:-1] if out else s)]
-        if len(reply) != 1:
+        if external_recorder.is_replaying and not reply:
+            return None
+
+        return self._apply_numeric_reply(setter, channel, out, reply)
+
+    def _apply_numeric_reply(self, setter, channel, out, reply, *, allow_missing=False):
+        if not reply:
+            if allow_missing:
+                return None
             return setter(channel, -1)
 
-        return setter(channel, reply[0])
+        tokens = reply.replace(",", " ").split()
+        values = []
+        for token in tokens:
+            candidate = token
+            if out and not is_float_try(candidate) and len(candidate) > 1:
+                candidate = candidate[:-1]
+            if is_float_try(candidate):
+                values.append(float(candidate))
+
+        if len(values) != 1:
+            if allow_missing:
+                return None
+            return setter(channel, -1)
+
+        return setter(channel, values[0])
 
     def get_state_from_device(self, channel=1, timeout=100):
         return self._get_value_from_device("v", channel, True, timeout, self.set_state)
@@ -301,7 +329,11 @@ class PowerSupply:
 
 
     def _handle_external_event(self, event: ExternalEvent) -> None:
-        if event.kind != "power" or not external_recorder.is_replaying:
+        if event.kind != "power":
+            return
+        if not external_recorder.is_replaying:
+            with self._replay_queue_lock:
+                self._replay_expected_replies.clear()
             return
         if event.direction == "out":
             command = str(event.payload)
@@ -327,6 +359,15 @@ class PowerSupply:
             return
         logger.info("Replaying power reply: %s", reply)
         self.message_handler.info(f"[Replay] {reply}")
+        expected = None
+        with self._replay_queue_lock:
+            if self._replay_expected_replies:
+                expected = self._replay_expected_replies.popleft()
+        if expected:
+            setter, channel, out = expected
+            result = self._apply_numeric_reply(setter, channel, out, reply, allow_missing=True)
+            if result is not None:
+                return
         tokens = reply.replace(',', ' ').split()
         if not tokens:
             return
