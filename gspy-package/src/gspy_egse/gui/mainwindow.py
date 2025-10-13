@@ -331,6 +331,10 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         else:
             QtCore.QTimer(self).singleShot(500, self.read_settings)
 
+    def _open_external_recorder(self) -> None:
+        """Show the External Recorder popup when the main window starts."""
+        self.external_recorder_window = ExternalRecorderWindow()
+
     def show_recorder(self):
         try:
             self.record_window.show()

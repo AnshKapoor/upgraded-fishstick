@@ -138,6 +138,11 @@ class SpaceWire(Extendable):
             ExternalEvent(time.time(), "out", "space-wire", list(sdata))
         )
 
+        # record outgoing message
+        external_recorder.record(
+            ExternalEvent(time.time(), "out", "spacewire", list(sdata))
+        )
+
     def _cmd_substitute(self, code, sub_code=None) -> (int, int):
         if sub_code is None:
             return self.cmd_substitutions.get(code, (code, None))
