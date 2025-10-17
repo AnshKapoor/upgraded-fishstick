@@ -68,6 +68,14 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
         self.multiplePackets.toggled.connect(self.buttonMultiplePacket)
         self.spw.spw.spw_raw.signalEmitter.dataReceived.connect(self.displayResults)
 
+# testing button
+        self.testingButton = QtWidgets.QPushButton("Loop Testing", self)
+        # Position des Buttons festlegen
+        self.testingButton.setGeometry(600, 10, 90, 25)  # Beispielposition und -größe
+        # Verbinden Sie den Button mit der start_testing-Funktion
+        self.testingButton.clicked.connect(self.start_testing)
+# testing button end
+
         self.update_ui()
 
         deviceName = self.spw.getDeviceName()
@@ -77,13 +85,7 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
 
         self.make_settings_btn(self.settingsButton)
 
-# testing button
-        self.testingButton = QtWidgets.QPushButton("Loop Testing", self)
-        # Position des Buttons festlegen
-        self.testingButton.setGeometry(600, 10, 90, 25)  # Beispielposition und -größe
-        # Verbinden Sie den Button mit der start_testing-Funktion
-        self.testingButton.clicked.connect(self.start_testing)
-# testing button end
+
 
     def load_dummy(self):
         """
