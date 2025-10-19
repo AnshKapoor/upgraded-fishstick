@@ -1,7 +1,6 @@
 import time
 import serial
 import logging
-from contextlib import suppress
 import threading
 
 try:
@@ -87,11 +86,16 @@ class PowerSupply:
         self.message_handler.info("Closing connection.")
 
     def free_and_close(self):
-        with self.poll_lock, suppress(Exception):
-            self.send_command("local", expected_lines=0)
-            time.sleep(.050)
-        with suppress(Exception):
+        with self.poll_lock:
+            try:
+                self.send_command("local", expected_lines=0)
+                time.sleep(.050)
+            except Exception:
+                logger.exception("Failed to return power supply to local mode during shutdown.")
+        try:
             self.ser.close()
+        except Exception:
+            logger.exception("Failed to close serial connection to power supply.")
         self.ser = None
 
     def add_listeners(self, s=list(), v=list(), i=list(), v_o=list(), i_o=list()):
@@ -294,10 +298,13 @@ class PowerSupply:
             sleep_minus = time.time() - start
 
     def flush_inbuffer(self):
-        with suppress(Exception), self.send_lock:
-            while self.ser.inWaiting() > 0:
-                print("flushing inbuffer")
-                self.ser.read(self.ser.inWaiting())
+        with self.send_lock:
+            try:
+                while self.ser.inWaiting() > 0:
+                    print("flushing inbuffer")
+                    self.ser.read(self.ser.inWaiting())
+            except Exception:
+                logger.exception("Failed to flush power supply input buffer.")
 
 
     def _handle_external_event(self, event: ExternalEvent) -> None:
@@ -344,20 +351,28 @@ class PowerSupply:
                 for token in tokens[2:]:
                     upper = token.upper()
                     if upper.endswith('V'):
-                        with suppress(Exception):
+                        try:
                             self.set_voltage_out(channel, float(token[:-1]))
+                        except Exception:
+                            logger.exception("Failed to set voltage output from replay token '%s'", token)
                     elif upper.endswith('A'):
-                        with suppress(Exception):
+                        try:
                             self.set_intensity_out(channel, float(token[:-1]))
+                        except Exception:
+                            logger.exception("Failed to set intensity output from replay token '%s'", token)
                 return
             for token in tokens:
                 upper = token.upper()
                 if upper.endswith('V'):
-                    with suppress(Exception):
+                    try:
                         self.set_voltage_out(channel, float(token[:-1]))
+                    except Exception:
+                        logger.exception("Failed to set voltage output from replay token '%s'", token)
                 elif upper.endswith('A'):
-                    with suppress(Exception):
+                    try:
                         self.set_intensity_out(channel, float(token[:-1]))
+                    except Exception:
+                        logger.exception("Failed to set intensity output from replay token '%s'", token)
         except Exception:
             logger.exception("Failed to process replayed power reply: %s", reply)
 

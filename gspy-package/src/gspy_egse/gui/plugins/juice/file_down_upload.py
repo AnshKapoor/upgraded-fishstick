@@ -1,6 +1,6 @@
 from PyQt6 import QtCore, QtWidgets, QtGui, uic
+import logging
 from pathlib import Path
-from contextlib import suppress
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
@@ -17,8 +17,14 @@ from gspy_egse.gui.utils.recorder import Recordable
 from gspy_egse.gui.hardware_modules.spacewire import SpaceWire
 from gspy_egse.gui.hardware_modules.juice_lib.ramfs import RamFs
 
-with suppress(Exception):
+
+logger = logging.getLogger(__name__)
+
+try:
     from PIL import Image
+except Exception:
+    logger.exception("Failed to import PIL.Image; image previews may be unavailable.")
+    Image = None
 
 
 
@@ -225,9 +231,13 @@ class FileDownUploadWidget(WidgetWithExtension, Recordable):
             with open(downfile, 'rb') as f:
                 async_in_main_thread(self.fill_table, args=(f.read(
                     self.table.columnCount() * self.table.rowCount()),))
-            with suppress(OSError):
+            try:
                 img = mpimg.imread(str(downfile.absolute()))
-
+            except OSError:
+                logger.debug("Image file at %s could not be read as an image.", downfile, exc_info=True)
+            except Exception:
+                logger.exception("Failed to load image preview from %s.", downfile)
+            else:
                 self.figure.clear()
                 ax = self.figure.add_subplot(111)
 

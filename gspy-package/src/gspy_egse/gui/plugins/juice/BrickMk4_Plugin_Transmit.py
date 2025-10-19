@@ -1,6 +1,5 @@
 from PyQt6 import QtCore, QtWidgets, QtGui, uic
 from pathlib import Path
-from contextlib import suppress
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg

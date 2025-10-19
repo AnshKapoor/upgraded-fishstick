@@ -1,8 +1,12 @@
-from contextlib import suppress
 from PyQt6 import QtWidgets, QtCore
+
+import logging
 
 from .widget import SplitterWithSettings
 from .plugin import WidgetWithSettings
+
+
+logger = logging.getLogger(__name__)
 
 
 def _init(cls, window, *args, **kwargs):
@@ -60,8 +64,13 @@ class DoubleScreen(QtWidgets.QWidget):
 
     def delete_settings(self):
         for i in reversed(range(self.layout().count())):
-            with suppress(AttributeError):
-                self.layout().itemAt(i).widget().delete_settings()
+            widget = self.layout().itemAt(i).widget()
+            try:
+                widget.delete_settings()
+            except AttributeError:
+                logger.debug("Widget %r does not implement delete_settings().", widget, exc_info=True)
+            except Exception:
+                logger.exception("Failed to delete settings for widget %r.", widget)
 
     # noinspection PyPep8Naming
     def deleteLater(self):
@@ -77,16 +86,26 @@ class DoubleScreen(QtWidgets.QWidget):
         cls = cls if cls is not None else self.__class__
         ids = []
         for i in reversed(range(self.layout().count())):
-            with suppress(AttributeError):
-                self.layout().itemAt(i).widget().handle_detach(cls)
-                ids.append(self.layout().itemAt(i).widget().identifier)
+            widget = self.layout().itemAt(i).widget()
+            try:
+                widget.handle_detach(cls)
+                ids.append(widget.identifier)
+            except AttributeError:
+                logger.debug("Widget %r does not implement handle_detach().", widget, exc_info=True)
+            except Exception:
+                logger.exception("Failed to handle_detach for widget %r.", widget)
         self.identifier = ";".join(reversed(ids))
 
     def handle_reattach(self, cls=None):
         cls = cls if cls is not None else self.__class__
         ids = []
         for i in reversed(range(self.layout().count())):
-            with suppress(AttributeError):
-                self.layout().itemAt(i).widget().handle_reattach(cls)
-                ids.append(self.layout().itemAt(i).widget().identifier)
+            widget = self.layout().itemAt(i).widget()
+            try:
+                widget.handle_reattach(cls)
+                ids.append(widget.identifier)
+            except AttributeError:
+                logger.debug("Widget %r does not implement handle_reattach().", widget, exc_info=True)
+            except Exception:
+                logger.exception("Failed to handle_reattach for widget %r.", widget)
         self.identifier = ";".join(reversed(ids))

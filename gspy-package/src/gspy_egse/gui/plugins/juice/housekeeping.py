@@ -1,6 +1,6 @@
 from PyQt6 import QtCore, QtWidgets, QtGui, uic
 from pathlib import Path
-from contextlib import suppress
+import logging
 from typing import *
 
 
@@ -18,6 +18,8 @@ from importlib.resources import files, as_file  # stdlib, Python ≥3.9
 
 pkg = "gspy_egse.gui.ui"
 ui_name = "houseKeeping.ui"
+
+logger = logging.getLogger(__name__)
 
 class RequirePlugins(WidgetWithExtension):
     def __init__(self, *args, **kwargs):
@@ -44,8 +46,10 @@ class HousekeepingWidget(WidgetWithExtension):
         self.spw.add_hk_listener(self.hk_listener)
 
         hk = None
-        with suppress(Exception):
+        try:
             hk = self.spw.hk
+        except Exception:
+            logger.exception("Failed to access housekeeping interface from SpaceWire connection.")
         
         ui_res = files(pkg).joinpath(ui_name)
         with as_file(ui_res) as ui_path:
