@@ -114,3 +114,40 @@ This plugin implements the Simulator logic that communicates with the SpaceWire 
 
 The `pus_parser.py` module parses **CCSDS** primary headers and **PUS (Packet Utilisation Standard) TM** headers from raw byte lists. It produces a structured `ParsedTM` object used by the Simulator plugin to render concise telemetry summaries (e.g., `TM[1,5] Progress`) and optional `step_id` values.
 
+
+---
+
+### Workflow of Service 1 Operation
+
+Once all the above components are in place, the **Service 1 simulator** operates as follows:
+
+1. **Launch GSpy GUI**  
+   Run the GSpy application. The main interface loads all available screens and plugins.
+
+2. **Open the Simulator Screen**  
+   In the GUI, navigate to the **SpaceWire Group** and select the **Simulator** tab (registered by `simulator.py`).
+
+3. **User Interaction (Front-End)**  
+   The GUI layout defined in `service1.ui` presents four main buttons, each representing one of the Service 1 subservices:  
+   - TM [1,1] Acceptance  
+   - TM [1,3] Start  
+   - TM [1,5] Progress  
+   - TM [1,7] Completion  
+
+4. **Plugin Execution (Back-End)**  
+   When the user clicks a button:
+   - The corresponding **signal** (Qt event) triggers a slot in `BrickMk4_Plugin_service1.py`.  
+   - The plugin calls `_build_tm_packet()` to create the corresponding CCSDS + PUS telemetry packet.  
+   - The packet is queued and sent through the active **SpaceWire connection** (`SpaceWireConnection` + `BrickMk4` driver).
+
+5. **Hardware / Dummy Processing**  
+   - If the Brick Mk4 hardware is connected, it transmits and receives packets in real time.  
+   - If the simulator is in **dummy mode**, no hardware is required — the GUI mimics responses for demonstration.
+
+6. **Telemetry Reception and Parsing**  
+   - When a response is received, the plugin’s `displayResults()` method is triggered.  
+   - It uses the `parse_tm_packet()` function from `pus_parser.py` to decode the telemetry fields and display them in the text console area.
+
+7. **GUI Update**  
+   - Labels and text fields in the GUI are updated to show transmission results, throughput, and decoded TM summaries.  
+   - The user can then send another subservice or reset the device.
