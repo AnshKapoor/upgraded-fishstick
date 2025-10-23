@@ -25,17 +25,20 @@ def call_async(target, args=None, kwargs=None):
         args = (args,)
 
     if args is None:
-        return threading.Thread(target=target).start()
-    if kwargs is None:
-        return threading.Thread(target=target, args=args).start()
-    return threading.Thread(target=target, args=args, kwargs=kwargs).start()
+        thread = threading.Thread(target=target)
+    elif kwargs is None:
+        thread = threading.Thread(target=target, args=args)
+    else:
+        thread = threading.Thread(target=target, args=args, kwargs=kwargs)
+    thread.start()
+    return thread
 
 
 def get_bit(value: int, start_bit: int, end_bit: Optional[int] = None):
     """
     Extracts a value from an integer between a start and end byte.
     End is optional, one bit value will be extracted if omitted
-    
+
     examples (tests):
     >>> get_bit(0x10, 4, 7)
     1
@@ -43,10 +46,10 @@ def get_bit(value: int, start_bit: int, end_bit: Optional[int] = None):
     0
     >>> bin(get_bit(0x10, 1, 6))
     '0b1000'
-    
+
     :param value: Integer from which to extract the bits
     :param start_bit: Position of first bit to extract
-    :param end_bit: Position of last bit to extract. Interpreted as start_bit if not provided 
+    :param end_bit: Position of last bit to extract. Interpreted as start_bit if not provided
     :return: Extracted data
     """
 
