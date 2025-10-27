@@ -218,7 +218,10 @@ def test_connect_failure_leaves_serial_disconnected(monkeypatch: pytest.MonkeyPa
 
     assert supply.ser is None, "Serial handle must stay None on connection failure."
     assert not supply.is_connected(), "is_connected() should reflect the failed connection state."
-    assert any(level == "error" and "Serial Connection failed." in message for level, message in handler.messages), "User should be notified about the failure."
+    assert any(
+        level == "warning" and "Serial connection unavailable" in message
+        for level, message in handler.messages
+    ), "User should be notified about the unavailable port without logging an error."
 
     supply.flush_inbuffer()  # Should be a no-op without raising.
 

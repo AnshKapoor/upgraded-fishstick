@@ -103,8 +103,9 @@ class PowerSupply:
             if not serial_device.isOpen():
                 raise serial.serialutil.SerialException("Serial port failed to open.")
         except serial.serialutil.SerialException as exc:
-            self.message_handler.error("Serial Connection failed.")
-            logger.exception("Failed to establish serial connection to power supply: %s", exc)
+            # Notify the GUI without escalating to the global error log when the port is missing.
+            self.message_handler.warning("Serial connection unavailable. Please verify the configured port.")
+            logger.info("Handled serial connection failure for power supply: %s", exc)
             self.ser = None
             return False
 
