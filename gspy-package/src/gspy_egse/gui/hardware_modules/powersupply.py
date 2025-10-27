@@ -105,7 +105,7 @@ class PowerSupply:
         except serial.serialutil.SerialException as exc:
             # Notify the GUI without escalating to the global error log when the port is missing.
             self.message_handler.warning("Serial connection unavailable. Please verify the configured port.")
-            logger.info("Gracefully handled serial connection failure for power supply: %s", exc)
+            logger.info("Handled serial connection failure for power supply: %s", exc)
             self.ser = None
             return False
 
