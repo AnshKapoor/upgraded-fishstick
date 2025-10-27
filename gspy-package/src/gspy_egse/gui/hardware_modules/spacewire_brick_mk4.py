@@ -39,12 +39,12 @@ class SpaceWireBrickMk4(ISpaceWireBridge):
     # the tcp_ip and tcp_port are not used/applicable to this bridge, but have not been changed,
     # to reduce the changes that have to be made to some functions
     def __init__(self, tcp_ip='127.0.0.1', tcp_port=3000, message_handler=None):
-        
+
         message_handler = WrappedMessageHandler(message_handler, "SpwBrick Mk4")
         self.message_handler = message_handler
 
         print(f"now we are in BrickMk4 init function")
-        
+
         self.transmitResult = None
         self.total_duration = 0
         self.dataThroughPut = 0
@@ -56,7 +56,7 @@ class SpaceWireBrickMk4(ISpaceWireBridge):
         self.lockReceive = threading.Lock()
         self.transmitChannel = 1
         self.receiveChannel = 2
-        self.tx_open = False 
+        self.tx_open = False
         self.rx_open = False
         self.boolSendMultiplePackets = False
         self.signalEmitter = SpaceWireSignalEmitter()
@@ -83,17 +83,17 @@ class SpaceWireBrickMk4(ISpaceWireBridge):
         # Writing to json
         with open("dummymode.json", "w") as outfile:
             outfile.write(json_object)
-        
+
         if self.firstDevice is None:
             print("No devices are connected.")
             return
-        
+
         try:
             self.deviceConfig = DeviceConfig(self.firstDevice.deviceID)
         except (TypeError, ValueError):
             print("Could not create DeviceConfig object.")
             return
-        
+
         try:
             self.configPort0 = ConfigPort(self.deviceConfig.deviceID, 0)
             self.port1 = Port(self.deviceConfig.deviceID, 1)
@@ -107,10 +107,10 @@ class SpaceWireBrickMk4(ISpaceWireBridge):
             print("Could not create link port object.")
             self.message_handler.error("BrickMk4 not connected")
             return
-             
+
         self.error_printer = print
         self.success_printer = print
-        
+
         self.message_handler.info("Brick Mk4 initialised.")
         if not self.dummy:
             self.deviceConfig.identify()
@@ -136,7 +136,7 @@ class SpaceWireBrickMk4(ISpaceWireBridge):
             self.error_printer(err)
             self.tx_open = False
             return
-        
+
         try:
             self.channel_rx = Channel(self.receiveChannel, self.firstDevice.deviceID)
         except (STARAPIError, TypeError, ValueError) as err:
@@ -152,7 +152,7 @@ class SpaceWireBrickMk4(ISpaceWireBridge):
             except STARAPIError as err:
                 self.error_printer(err)
                 return
-                
+
         if self.rx_open:
             try:
                 self.channel_rx.close()
@@ -174,15 +174,15 @@ class SpaceWireBrickMk4(ISpaceWireBridge):
         if packetData is None or not packetData:
             # packetData is either None or an empty list
             self.message_handler.warning("no input for packetData")
-            
+
         if address is None or not address:
             self.hasAddress = False
         else:
             self.hasAddress = True
-            
+
         self.transmittedData = packetData
         self.transmittedAddress = address
-        
+
         if self.channel_tx is None:
             try:
                 self.channel_tx = Channel(self.transmitChannel, self.firstDevice.deviceID)
@@ -199,9 +199,9 @@ class SpaceWireBrickMk4(ISpaceWireBridge):
             self.error_printer(err)
             self.tx_open = False
             return
-        
+
         DataChunkInstance = DataChunk
-        
+
         if self.boolSendMultiplePackets:
             chunksList = self.send_multiple_packets(self.transmittedData, DataChunkInstance.MAX_CHUNK_SIZE)
             # Create packet(s)
@@ -242,7 +242,7 @@ class SpaceWireBrickMk4(ISpaceWireBridge):
                 except STARAPIError as err:
                     self.error_printer(err)
                 return
-        
+
         # Create send transfer operation.
         try:
             self.sendTransferOperation = TransmitOperation(self.packetsList)
@@ -300,9 +300,9 @@ class SpaceWireBrickMk4(ISpaceWireBridge):
         except STARAPIError as err:
             self.error_printer(err)
             return
-        
+
         return
-            
+
     def receive(self) -> Optional[bytes]:
         if self.dummy:
             return
@@ -351,15 +351,17 @@ class SpaceWireBrickMk4(ISpaceWireBridge):
             except STARAPIError as err:
                 self.error_printer(err)
             return
-        
+
         # helps to synchronize the retrieving of the results
-        # otherwise the getTransmitResult function will retrieve the values before the receive function executes 
+        # otherwise the getTransmitResult function will retrieve the values before the receive function executes
         # because the receive function works in a subthread, created by call_async(self.receive_thread)
         # from hardware_modules/spacewire.py and the getTransmitResult, which will be called in the main_thread,
         # executes his code before the receive function
         with self.lockReceive:
+            self.start = time.perf_counter_ns()
             try:
                 # Wait for packet to be received.
+                # This blocks the receive thread indefinitely
                 self.status = receiveTransferOperation.waitOnTransferOperationCompletion(-1)
             except (STARAPIError, TypeError) as err:
                 self.error_printer(err)
@@ -368,25 +370,28 @@ class SpaceWireBrickMk4(ISpaceWireBridge):
                     self.channel_rx.close()
                 except STARAPIError as err:
                     self.error_printer(err)
-                return
-            
+                return None
+
             self.finish = time.perf_counter_ns()
-                
+
+            if self.status == STAR_TRANSFER_STATUS.STAR_TRANSFER_STATUS_CANCELLED:
+                return None
+
             if self.status == STAR_TRANSFER_STATUS.STAR_TRANSFER_STATUS_COMPLETE:
-                
+
                 if self.boolSendMultiplePackets:
                     self.receivedPackage = self.multiplePacketReceive(receiveTransferOperation)
                 else:
                     self.receivedPackage = self.singlePacketReceive(receiveTransferOperation)
             else:
                 self.error_printer("Did not receive valid packet")
-            
+
             # convert nanoseconds to seconds by dividing by 10E9
             self.total_duration = (self.finish - self.start)/1000000000.0
 
             self.dataThroughPutBit_s = float(self.receivedPacketsTotalLenghts*8)/float(self.total_duration)
             self.dataThroughPutMBit_s = self.dataThroughPutBit_s/1000000.0
-                      
+
             self.message_handler.success("###packet(s) successfully received###")
             if self.fileCompareErrors != 0:
                 self.transmitResult = False
@@ -402,28 +407,28 @@ class SpaceWireBrickMk4(ISpaceWireBridge):
                 threading.Thread(target=self.writeOutResults, args=(self.transmitResult, self.dataThroughPutMBit_s,
                                                                     self.total_duration,
                                                                     self.receivedPacketsTotalLenghts)).start()
-            
+
             try:
                 self.channel_rx.close()
             except STARAPIError as err:
                 self.error_printer(err)
                 return
-            
+
             self.stop_event.set()
             self.stop_event.clear()
 
             receivedPackageBytes = bytes(self.receivedPackage)
             print(f"received package: {self.receivedPackage}")
             print(f"received package bytes: {receivedPackageBytes}")
-        
+
             self.signalEmitter.dataReceived.emit(self.transmitResult, self.dataThroughPutMBit_s, self.total_duration, self.receivedPackage)
             return receivedPackageBytes
-        
+
     def send_multiple_packets(self, transmittedDataChunks, maxDataSize):
         if self.dummy:
             return
         chunksList = []
-        
+
         length_trans_Data = len(transmittedDataChunks)
         for i in range(0, length_trans_Data, maxDataSize):
             chunk = transmittedDataChunks[i:i + maxDataSize]
@@ -433,9 +438,9 @@ class SpaceWireBrickMk4(ISpaceWireBridge):
                 print(err)
                 # Handle error if needed
                 return chunksList
-            
+
             chunksList.append(dataChunks)
-       
+
         return chunksList
 
     def ft_getMultiplePacket(self, receiveTransferOperation, receivedPacketNumber):
@@ -460,7 +465,7 @@ class SpaceWireBrickMk4(ISpaceWireBridge):
             receivedPackageLength = packet.getPacketLength()
             self.receivedPacketsTotalLenghts = self.receivedPacketsTotalLenghts + receivedPackageLength
             receivedPackageData = []
-            
+
             if receivedPacketNumber == 0:
                 if self.hasAddress:
                     receivedPackageData = receivedPackage[1:]
@@ -486,11 +491,11 @@ class SpaceWireBrickMk4(ISpaceWireBridge):
         receivedPackage = None
         receivedPackageAddress = []
         receivedPackageData = []
-    
+
         try:
             # Get received packet.
             packet = receiveTransferOperation.getTransferItem(0)
-            
+
         except (STARAPIError, TypeError, AttributeError, ValueError) as err:
             self.error_printer(err)
             try:
@@ -522,7 +527,7 @@ class SpaceWireBrickMk4(ISpaceWireBridge):
                 self.fileCompareErrors = self.fileCompareErrors + 1
 
         return receivedPackageData, receivedPackageLength
-    
+
     def reset_Spw_Device(self):
         try:
             self.firstDevice.resetDevice()
@@ -559,7 +564,7 @@ class SpaceWireBrickMk4(ISpaceWireBridge):
             except STARAPIError as err:
                 self.error_printer(err)
             return
-        
+
     def writeOutResults(self, transmitResult, dataThroughputMbit_s, totalDuration, receivedPacketsTotalLengthsBytes):
         if os.name == 'nt':
             file_path = "../output/windows_transmit_output_GSpy.csv"  # Name und Pfad der CSV-Datei
@@ -613,13 +618,14 @@ class SpaceWireBrickMk4(ISpaceWireBridge):
             return
         receivedPackage, receivedPackageLength = self.ft_getMultiplePacket(receiveTransferOperation, self.receivedPacketNumber)
         self.receivedPacketNumber += 1
-  
+
         self.message_handler.info("received package no. : %s has size of: %s Bytes" %(self.receivedPacketNumber, receivedPackageLength))
-        
+
         actualPacketNumber = len(self.transmittedLengthList)
-        
+
         # Check if all sent packets are received
         while self.receivedPacketNumber < actualPacketNumber and not self.dummy:
+
             try:
                 # Start receiving packet.
                 self.channel_rx.submitTransferOperation(receiveTransferOperation)
@@ -642,13 +648,13 @@ class SpaceWireBrickMk4(ISpaceWireBridge):
                 except STARAPIError as err:
                     self.error_printer(err)
                 return
-            
+
             self.finish = time.perf_counter_ns()
 
             if self.status == STAR_TRANSFER_STATUS.STAR_TRANSFER_STATUS_COMPLETE:
                 receivedPackage, receivedPackageLength = self.ft_getMultiplePacket(receiveTransferOperation, self.receivedPacketNumber)
                 self.receivedPacketNumber += 1
-            
+
                 self.message_handler.info("received package no. : %s has size of: %s Bytes" %(self.receivedPacketNumber, receivedPackageLength))
 
                 return receivedPackage
