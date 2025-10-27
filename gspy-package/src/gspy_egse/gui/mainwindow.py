@@ -21,6 +21,7 @@ import importlib
 import importlib.util
 import importlib.resources
 from importlib.resources import files, as_file  # stdlib, Python ≥3.9
+from contextlib import suppress
 
 from pathlib import Path
 
@@ -614,7 +615,19 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         self.tree_dock.setWidget(self.tree_widget)
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.tree_dock)
 
-    def load_plugins(self, plugin_path=None, package="gspy_egse.gui.plugins"):
+    def load_plugins(self, plugin_path: Optional[str] = None, package: str = "gspy_egse.gui.plugins") -> int:
+        """Load plugin modules and initialise their background tasks.
+
+        The method safeguards against hardware plugins whose serial connections fail by
+        skipping their polling setup until a connection is available.
+
+        Args:
+            plugin_path: Optional filesystem path that overrides the default search location.
+            package: Import path of the plugin package to load.
+
+        Returns:
+            The number of plugin modules successfully imported.
+        """
         import importlib
         import importlib.resources
         import logging
@@ -651,7 +664,23 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
 
                 tasks = getattr(mod, "BACKGROUND_TASKS", [])
                 for Task in tasks:
-                    self.background_tasks.append(Task(self))
+                    task_instance = Task(self)
+                    hardware = getattr(task_instance, "hardware", None)
+                    is_connected = getattr(hardware, "is_connected", None)
+                    if callable(is_connected) and not is_connected():
+                        logging.warning(
+                            "[Load plugins] %s hardware not connected; skipping polling and UI activation.",
+                            full_module_name,
+                        )
+                        if self.message_handler is not None:
+                            self.message_handler.warning(
+                                f"{full_module_name} connection unavailable. Controls remain disabled until a port is configured."
+                            )
+                        if hasattr(task_instance, "hardware") and hasattr(task_instance.hardware, "stop_polling"):
+                            with suppress(Exception):
+                                task_instance.hardware.stop_polling()
+                        continue
+                    self.background_tasks.append(task_instance)
             except Exception as e:
                 logging.warning(f"[Load plugins] Failed to import plugin {full_module_name}: {e}")
 
