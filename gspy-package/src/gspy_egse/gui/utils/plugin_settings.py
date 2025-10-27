@@ -1,8 +1,9 @@
 import json
 from datetime import datetime
+import logging
+
 from PyQt6 import QtCore
 from threading import Lock
-from contextlib import suppress
 
 
 class PluginSettingsSyncWrite:
@@ -159,10 +160,12 @@ class PluginSettings(QtCore.QObject):
     @QtCore.pyqtSlot()
     def write(self):
         with self.write_lock:
-            with suppress(Exception):
+            try:
                 if isinstance(self.sender(), QtCore.QTimer):
                     del self.timer
                     self.timer = None
+            except Exception:
+                logger.exception("Failed to clear write timer before persisting plugin settings.")
 
             self.write_time = datetime.now()
             with open(self.json, 'w') as file:
@@ -188,3 +191,5 @@ class PluginSettings(QtCore.QObject):
             return False
         except FileNotFoundError:
             return True
+logger = logging.getLogger(__name__)
+

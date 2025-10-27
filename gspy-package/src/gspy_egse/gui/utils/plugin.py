@@ -1,8 +1,12 @@
 from PyQt6 import QtWidgets, QtCore, uic
 from copy import copy
+import logging
+
 from .plugin_settings import PluginSettings
-from contextlib import suppress
 from .misc import MAX_INT32, random_identifier
+
+
+logger = logging.getLogger(__name__)
 
 
 class ObjectWithSettings:
@@ -136,8 +140,12 @@ class WidgetWithExtension(WidgetWithSettings):
         except AttributeError:
             self._params = (args, kwargs)
 
-        with suppress(AttributeError):
+        try:
             self._init()
+        except AttributeError:
+            logger.debug("Widget %s does not implement _init().", self.__class__.__name__, exc_info=True)
+        except Exception:
+            logger.exception("Unexpected error during _init for widget %s.", self.__class__.__name__)
 
         self._init_delayed = False  # indicate _delay_init that init is not delayed and no listeners need to be called
         window.add_extension_class_listener(ext_cls, self.__delay_init)  # this might call _delay_init:
@@ -163,17 +171,25 @@ class WidgetWithExtension(WidgetWithSettings):
     @QtCore.pyqtSlot(object, bool)
     def __delay_init(self, extension, threaded=False):
         for E in (self._sub_exts if isinstance(self._sub_exts, list) else [self._sub_exts]):
-            with suppress(ValueError):
+            try:
                 E(extension)
+            except ValueError:
+                logger.debug("Extension %r rejected %r.", E, extension, exc_info=True)
+            except Exception:
+                logger.exception("Extension %r failed while processing %r.", E, extension)
 
         if not self._init_delayed:  # extension is not delayed
             # no listeners
             self._init_delayed = True  # notify __init__ that we already finished
-            with suppress(AttributeError):
+            try:
                 try:
                     self._delay_init(extension, False)
                 except TypeError:
                     self._delay_init(extension)
+            except AttributeError:
+                logger.debug("Widget %r does not implement _delay_init().", self, exc_info=True)
+            except Exception:
+                logger.exception("Unexpected error during _delay_init for widget %r.", self)
         else:  # extension is delayed
             if not threaded:
                 return self.__delay_init_signal.emit(extension, True)
@@ -184,11 +200,15 @@ class WidgetWithExtension(WidgetWithSettings):
                     listener()
 
             self._init_delayed = False  # delayed init done
-            with suppress(AttributeError):
+            try:
                 try:
                     self._delay_init(extension, False)
                 except TypeError:
                     self._delay_init(extension)
+            except AttributeError:
+                logger.debug("Widget %r does not implement _delay_init().", self, exc_info=True)
+            except Exception:
+                logger.exception("Unexpected error during delayed _delay_init for widget %r.", self)
 
 
 class Setting:

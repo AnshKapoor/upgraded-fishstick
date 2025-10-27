@@ -1,7 +1,6 @@
 import os
 from PyQt6 import QtCore, QtWidgets, QtGui, uic
 from PyQt6.QtGui import QStandardItem, QStandardItemModel, QIcon
-from contextlib import suppress
 from typing import *
 
 import logging
@@ -155,9 +154,13 @@ class DetachedWindow(QtWidgets.QMainWindow):
             self.show()
             logger.debug("DetachedWindow forced show() on Windows for proper rendering.")
 
-        with suppress(Exception):
+        try:
             # noinspection PyUnresolvedReferences
             self.widget.handle_detach()
+        except AttributeError:
+            logger.debug("Widget %s does not implement handle_detach().", name, exc_info=True)
+        except Exception:
+            logger.exception("Unexpected error while detaching widget %s.", name)
         widget.show()
         self.initialized = True
         logger.info(f"DetachedWindow initialized for {name}.")
@@ -179,8 +182,12 @@ class DetachedWindow(QtWidgets.QMainWindow):
             self.initialized = False
             if self.widget is not None:
                 if not self.saved:
-                    with suppress(Exception):
+                    try:
                         self.widget.delete_settings()
+                    except AttributeError:
+                        logger.debug("Widget %s does not implement delete_settings().", self.name, exc_info=True)
+                    except Exception:
+                        logger.exception("Unexpected error while deleting settings for widget %s.", self.name)
                 self.widget.deleteLater()
                 self.widget = None
             if self.main_window is not None:
@@ -221,8 +228,12 @@ class DetachedWindow(QtWidgets.QMainWindow):
             self.initialized = False
             self.main_window = None
 
-        with suppress(Exception):
+        try:
             self.widget.handle_reattach()
+        except AttributeError:
+            logger.debug("Widget %s does not implement handle_reattach().", self.name, exc_info=True)
+        except Exception:
+            logger.exception("Unexpected error while reattaching widget %s.", self.name)
 
         self.widget = None
         self.deleteLater()
@@ -461,9 +472,11 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         if selection is not None:
             # import time
             # time.sleep(.1)  # this fixes a sigsegv crash
-            with suppress(Exception):
+            try:
                 self.restore_selection(selection, check_name=settings.value("selection_name"), set_widget=True)
                 # self.restoreState(settings.value("windowState"))
+            except Exception:
+                logger.exception("Failed to restore selection from saved settings.")
         if settings.value("recorder_visible", 0) == 1:
             self.show_recorder()
 
@@ -492,8 +505,12 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
 
     def kill_tasks(self, on_close=False):
         for t in self.background_tasks:
-            with suppress(Exception):
+            try:
                 t.close()
+            except AttributeError:
+                logger.debug("Background task %r does not implement close().", t, exc_info=True)
+            except Exception:
+                logger.exception("Failed to close background task %r.", t)
         try:
             self.record_window.close()
             if on_close:
@@ -548,14 +565,30 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
 
         logging.debug('Restore panels function. \n')
 
-        with suppress(Exception):
+        try:
             self.tree_widget.deleteLater()
-        with suppress(Exception):
+        except AttributeError:
+            logger.debug("tree_widget not available during restore_panels.", exc_info=True)
+        except Exception:
+            logger.exception("Failed to delete tree_widget during restore_panels.")
+        try:
             self.tree_dock.deleteLater()
-        with suppress(Exception):
+        except AttributeError:
+            logger.debug("tree_dock not available during restore_panels.", exc_info=True)
+        except Exception:
+            logger.exception("Failed to delete tree_dock during restore_panels.")
+        try:
             self.bottom_widget.deleteLater()
-        with suppress(Exception):
+        except AttributeError:
+            logger.debug("bottom_widget not available during restore_panels.", exc_info=True)
+        except Exception:
+            logger.exception("Failed to delete bottom_widget during restore_panels.")
+        try:
             self.bottom_dock.deleteLater()
+        except AttributeError:
+            logger.debug("bottom_dock not available during restore_panels.", exc_info=True)
+        except Exception:
+            logger.exception("Failed to delete bottom_dock during restore_panels.")
         self.bottom_widget = BottomWidget()
         self.bottom_dock = QtWidgets.QDockWidget("Info", self)
         self.bottom_dock.setObjectName("BottomDock")
@@ -722,9 +755,13 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
 
     def show(self):
         QtWidgets.QMainWindow.show(self)
-        with suppress(AttributeError):
+        try:
             if self.initialized:
                 self.setWindowOpacity(1)
+        except AttributeError:
+            logger.debug("Window opacity attribute not available on this platform.", exc_info=True)
+        except Exception:
+            logger.exception("Failed to update window opacity after showing main window.")
 
 
 class QItemPluginFolder(QStandardItem):

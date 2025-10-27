@@ -15,7 +15,6 @@ from PyQt6.QtCore import *
 from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
 from functools import wraps
-from contextlib import suppress
 from gspy_egse.gui.utils.misc import WrappedMessageHandler, call_async
 import logging
 RECORDING_FILTER = "GSpy Recording (*.gspy)"
@@ -87,8 +86,10 @@ class RecorderWindow(QMainWindow):
 
         self.list_record.setModel(glob.Recorder.record_items_model)
         self.on_new_recording()
-        with suppress(Exception):
+        try:
             self.restoreGeometry(glob.Settings.value("recorder_geometry", None))
+        except Exception:
+            logger.exception("Failed to restore recorder window geometry.")
 
         self.status_label = QLabel("Start or Load Recording", self)
         self.statusbar.addPermanentWidget(self.status_label, 1)

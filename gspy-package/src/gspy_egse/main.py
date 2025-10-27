@@ -2,7 +2,6 @@
 import os, platform, sys, logging
 from datetime import datetime
 from typing import List
-from contextlib import suppress
 from PyQt6.QtCore import QSettings
 import gspy_egse.gui.globalvars as glob
 # Setup logger
@@ -11,7 +10,8 @@ log_filename = datetime.now().strftime("logs/%Y-%m-%d_%H-%M-%S.log")
 logging.basicConfig(
     filename=log_filename,
     level=logging.DEBUG,
-    format="%(asctime)s [%(levelname)s] %(message)s",
+    # Include module file names and line numbers to simplify debugging traces.
+    format="%(asctime)s [%(levelname)s] %(filename)s:%(lineno)d %(message)s",
 )
 logger = logging.getLogger(__name__)
 
@@ -34,10 +34,12 @@ def run(argv: List[str] | None = None) -> None:
 
     # Windows per‑application taskbar ID
     if os.name == "nt":
-        with suppress(Exception):
+        try:
             import ctypes
             app_id = f"{COMPANY}.{PRODUCT}.{PRODUCT}.{VERSION_STR}"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
+        except Exception:
+            logger.exception("Failed to set Windows AppUserModelID.")
 
     app = QtWidgets.QApplication(argv)
     logger.info("QApplication initialized.")
