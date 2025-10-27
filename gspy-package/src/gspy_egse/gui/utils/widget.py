@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
-from contextlib import suppress
+import logging
 import pyqtgraph as pg
 from functools import wraps
 import threading
@@ -9,6 +9,9 @@ from typing import *
 
 from gspy_egse.gui.utils.plugin import ObjectWithSettings, Setting
 from gspy_egse.gui.utils.recorder import Recordable
+
+
+logger = logging.getLogger(__name__)
 
 def event_name(number: int) -> str:
     try:
@@ -426,21 +429,31 @@ class Splitter(QSplitter):
 
     @staticmethod
     def shrink_right(widget, margin=2):
-        with suppress(AttributeError):
-            if widget.layout() and widget.layout() != widget:
-                Splitter.shrink_right(widget.layout(), margin)
+        try:
+            layout = widget.layout()
+            if layout and layout != widget:
+                Splitter.shrink_right(layout, margin)
                 margin = 0
             l, t, r, b = widget.getContentsMargins()
             widget.setContentsMargins(int(l), int(t), int(margin), int(b))
+        except AttributeError:
+            logger.debug("Widget %r does not support shrink_right operation.", widget, exc_info=True)
+        except Exception:
+            logger.exception("Failed to shrink right for widget %r.", widget)
 
     @staticmethod
     def shrink_left(widget, margin=2):
-        with suppress(AttributeError):
-            if widget.layout() and widget.layout() != widget:
-                Splitter.shrink_left(widget.layout(), margin)
+        try:
+            layout = widget.layout()
+            if layout and layout != widget:
+                Splitter.shrink_left(layout, margin)
                 margin = 0
             l, t, r, b = widget.getContentsMargins()
             widget.setContentsMargins(int(margin), int(t), int(r), int(b))
+        except AttributeError:
+            logger.debug("Widget %r does not support shrink_left operation.", widget, exc_info=True)
+        except Exception:
+            logger.exception("Failed to shrink left for widget %r.", widget)
 
     def resizeEvent(self, q_resize_event):
         QSplitter.resizeEvent(self, q_resize_event)
@@ -466,8 +479,14 @@ class Splitter(QSplitter):
     def identifier(self):
         ids = []
         for i in reversed(range(self.count())):
-            with suppress(AttributeError):
+            try:
                 ids.append(self.widget(i).identifier)
+            except AttributeError:
+                widget = self.widget(i)
+                logger.debug("Widget %r does not expose an identifier.", widget, exc_info=True)
+            except Exception:
+                widget = self.widget(i)
+                logger.exception("Failed to read identifier for widget %r.", widget)
         return ";".join(reversed(ids))
 
     def addWidget(self, *args):
@@ -482,25 +501,45 @@ class Splitter(QSplitter):
 
     def delete_settings(self):
         for i in range(self.count()):
-            with suppress(AttributeError):
-                self.widget(i).delete_settings()
+            widget = self.widget(i)
+            try:
+                widget.delete_settings()
+            except AttributeError:
+                logger.debug("Widget %r does not implement delete_settings().", widget, exc_info=True)
+            except Exception:
+                logger.exception("Failed to delete settings for widget %r.", widget)
 
     # noinspection PyPep8Naming
     def deleteLater(self):
         for i in range(self.count()):
-            with suppress(AttributeError):
-                self.widget(i).deleteLater()
+            widget = self.widget(i)
+            try:
+                widget.deleteLater()
+            except AttributeError:
+                logger.debug("Widget %r does not implement deleteLater().", widget, exc_info=True)
+            except Exception:
+                logger.exception("Failed to call deleteLater on widget %r.", widget)
         QSplitter.deleteLater(self)
 
     def handle_detach(self, cls=None):
         for i in range(self.count()):
-            with suppress(AttributeError):
-                self.widget(i).handle_detach(cls=cls)
+            widget = self.widget(i)
+            try:
+                widget.handle_detach(cls=cls)
+            except AttributeError:
+                logger.debug("Widget %r does not implement handle_detach().", widget, exc_info=True)
+            except Exception:
+                logger.exception("Failed to handle_detach for widget %r.", widget)
 
     def handle_reattach(self, cls=None):
         for i in range(self.count()):
-            with suppress(AttributeError):
-                self.widget(i).handle_reattach(cls=cls)
+            widget = self.widget(i)
+            try:
+                widget.handle_reattach(cls=cls)
+            except AttributeError:
+                logger.debug("Widget %r does not implement handle_reattach().", widget, exc_info=True)
+            except Exception:
+                logger.exception("Failed to handle_reattach for widget %r.", widget)
 
 
 class SplitterWithSettings(Splitter):

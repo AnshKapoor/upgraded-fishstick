@@ -1,8 +1,12 @@
 from ..spacewire import *
 from .commands import *
 from pathlib import Path
+import logging
 import os
 import struct
+
+
+logger = logging.getLogger(__name__)
 
 
 class RamFs:
@@ -163,7 +167,7 @@ class RamFs:
     # noinspection PyUnreachableCode
     def _call_download_listener(self, listener: callable):
         self.download_complete.wait()
-        with suppress(Exception):
+        try:
             try:
                 if self.downfile is None:
                     listener(downdata=self.downdata)
@@ -176,6 +180,8 @@ class RamFs:
                     return
                 except TypeError:
                     listener()
+        except Exception:
+            logger.exception("Failed to call download listener.")
 
     def file_download(self, filename_dpu, filepath_local=None, wait=False, listener=None):
         self.downfile = filepath_local

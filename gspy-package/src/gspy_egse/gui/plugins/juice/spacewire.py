@@ -1,6 +1,7 @@
+import logging
+
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtCore import pyqtSlot, pyqtSignal
-from contextlib import suppress
 import threading
 import re
 
@@ -12,6 +13,9 @@ from gspy_egse.gui.hardware_modules.juice_lib.commands import *
 from gspy_egse.gui.utils.misc import Extendable
 from gspy_egse.gui.utils.plugin import Setting, ObjectWithSettings, PluginSettings
 from gspy_egse.gui.utils.recorder import Recordable
+
+
+logger = logging.getLogger(__name__)
 
 
 class RecordableSpaceWire(SpaceWire, Recordable):
@@ -31,9 +35,11 @@ class SpaceWireConnection(QtCore.QObject, ObjectWithSettings, Recordable):
     hardware_params_changed = pyqtSignal()
 
     def __init__(self, window: Extendable, *args, **kwargs):
-        with suppress(Exception):
+        try:
             if window.has_extension_class(self.__class__):
                 return
+        except Exception:
+            logger.exception("Failed to check existing extension for %s.", self.__class__.__name__)
 
         super().__init__(*args, plugin_settings=PluginSettings(__file__), **kwargs)
         self.window = window
@@ -168,8 +174,11 @@ class SpaceWireConnection(QtCore.QObject, ObjectWithSettings, Recordable):
             )
 
     def close(self):
-        with suppress(Exception):
+        try:
             self.hardware.close()
+        except Exception:
+            logger.exception("Failed to close SpaceWire hardware interface.")
+        finally:
             self.hardware = None
         self.message_handler.info("Spacewire is gone.")
 

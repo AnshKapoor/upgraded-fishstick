@@ -1,6 +1,7 @@
+import logging
+
 from PyQt6 import QtWidgets, uic, QtCore
 from PyQt6.QtCore import pyqtSignal, Qt, pyqtSlot
-from contextlib import suppress
 import threading
 import qtawesome as qta
 import pyqtgraph as pg
@@ -18,12 +19,16 @@ from importlib.resources import files, as_file  # stdlib, Python ≥3.9
 pkg = "gspy_egse.gui.ui"
 ui_name = "powersupplywidget.ui"
 
+logger = logging.getLogger(__name__)
+
 class PowerSupplyConnection(QtCore.QObject, ObjectWithSettings, Recordable):
     def __init__(self, window: Extendable, *args, **kwargs):
         print(f"powersupply.py: PowerSupplyConnection.__init__")
-        with suppress(Exception):
+        try:
             if window.has_extension_class(self.__class__):
                 return
+        except Exception:
+            logger.exception("Failed to check existing extension for %s.", self.__class__.__name__)
 
         self.window = window
         super().__init__(*args, plugin_settings=PluginSettings(__file__), **kwargs)

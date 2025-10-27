@@ -1,6 +1,9 @@
+import logging
 import serial
 import time
-from contextlib import suppress
+
+
+logger = logging.getLogger(__name__)
 
 
 def console(port="COM4", baudrate=19200, timeout=500, line_end="\n"):
@@ -16,10 +19,12 @@ def console(port="COM4", baudrate=19200, timeout=500, line_end="\n"):
         rtscts=False,
         timeout=0
     )
-    with suppress(Exception):
+    try:
         print(" trying Opening serial port \n")
         ser.close()
         ser.open()
+    except Exception:
+        logger.exception("Failed to open serial port for console.")
     ser.isOpen()
 
     while True:
@@ -41,10 +46,12 @@ def console(port="COM4", baudrate=19200, timeout=500, line_end="\n"):
             else:
                 out = ''
 
-            with suppress(Exception):
+            try:
                 print(out[-2])
                 print(out[-1])
                 out = out.decode()[-1]
+            except Exception:
+                logger.exception("Failed to decode serial console response.")
 
             print(out)
 

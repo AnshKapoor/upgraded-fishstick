@@ -1,4 +1,4 @@
-from contextlib import suppress
+import logging
 import pyqtgraph as pg
 from functools import wraps
 from typing import *
@@ -274,9 +274,13 @@ class Extendable:
             if not item.startswith('_'):
                 for m, ext in self.extensions:
                     if ext:
-                        with suppress(AttributeError):
+                        try:
                             r = object.__getattribute__(m, item)
                             return r
+                        except AttributeError:
+                            logger.debug("Extension %r does not provide attribute '%s'.", m, item, exc_info=True)
+                        except Exception:
+                            logger.exception("Failed to access attribute '%s' on extension %r.", item, m)
             raise e
 
 
@@ -444,3 +448,5 @@ def add_value_to_data(data: Dict[str, List[float]], value, offset=1.0, history=1
 
     for i in range(0, len(data["x"])):
         data["x"][i] -= data["x"][-1]
+logger = logging.getLogger(__name__)
+

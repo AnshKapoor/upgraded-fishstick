@@ -10,7 +10,6 @@ import threading  # from Telecommand import *
 # from CCSDS import *
 # from Boot import *
 # from Events import *
-from contextlib import suppress
 from typing import *
 
 from gspy_egse.gui.utils.misc import WrappedMessageHandler, Extendable, call_async
@@ -130,7 +129,7 @@ class SpaceWire(Extendable):
                     preview += ' ...'
                 self.message_handler.info(f"[Replay] TX {preview or '<empty>'} (suppressed)")
             except Exception:
-                pass
+                logger.exception("Failed to preview suppressed replay message.")
             return
         self.spw_raw.send(sdata, self.spw_dest_addr)
         # record outgoing message
