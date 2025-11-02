@@ -562,34 +562,51 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
 
         return selection_item
 
-    def restore_panels(self):
+    def _safe_delete(self, attribute_name: str) -> None:
+        """Safely schedule deletion of a widget-like attribute if it exists.
+
+        Args:
+            attribute_name (str): Name of the attribute referencing the widget to delete.
+
+        Returns:
+            None
+        """
+
+        # Retrieve the attribute from the instance; it might not exist yet.
+        widget: Optional[QtCore.QObject] = getattr(self, attribute_name, None)
+        if widget is None:
+            logger.debug("%s not available during restore_panels.", attribute_name)
+            return
+
+        try:
+            widget.deleteLater()
+            # Explicitly reset the attribute so future calls know it is gone.
+            setattr(self, attribute_name, None)
+        except Exception:
+            logger.exception("Failed to delete %s during restore_panels.", attribute_name)
+
+    def restore_panels(self, checked: Optional[bool] = None) -> None:
+        """Recreate dock and tree panels while safely cleaning existing widgets.
+
+        Args:
+            checked (Optional[bool]): Optional Qt check state when triggered from an action.
+
+        Returns:
+            None
+        """
 
         logging.debug('Restore panels function. \n')
 
-        try:
-            self.tree_widget.deleteLater()
-        except AttributeError:
-            logger.debug("tree_widget not available during restore_panels.", exc_info=True)
-        except Exception:
-            logger.exception("Failed to delete tree_widget during restore_panels.")
-        try:
-            self.tree_dock.deleteLater()
-        except AttributeError:
-            logger.debug("tree_dock not available during restore_panels.", exc_info=True)
-        except Exception:
-            logger.exception("Failed to delete tree_dock during restore_panels.")
-        try:
-            self.bottom_widget.deleteLater()
-        except AttributeError:
-            logger.debug("bottom_widget not available during restore_panels.", exc_info=True)
-        except Exception:
-            logger.exception("Failed to delete bottom_widget during restore_panels.")
-        try:
-            self.bottom_dock.deleteLater()
-        except AttributeError:
-            logger.debug("bottom_dock not available during restore_panels.", exc_info=True)
-        except Exception:
-            logger.exception("Failed to delete bottom_dock during restore_panels.")
+        # The ``checked`` flag is unused but preserved to stay compatible with QAction.
+        _ = checked
+
+        # Proactively dispose of old widgets while handling missing attributes gracefully.
+        self._safe_delete("tree_widget")
+        self._safe_delete("tree_dock")
+        self._safe_delete("bottom_widget")
+        self._safe_delete("bottom_dock")
+
+        # Instantiate fresh bottom panel components for status and messaging features.
         self.bottom_widget = BottomWidget()
         self.bottom_dock = QtWidgets.QDockWidget("Info", self)
         self.bottom_dock.setObjectName("BottomDock")
