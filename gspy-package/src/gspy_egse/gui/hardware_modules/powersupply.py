@@ -4,6 +4,7 @@ import logging
 from collections import deque
 from contextlib import suppress
 import threading
+from typing import Optional
 
 try:
     from ..utils.misc import WrappedMessageHandler
@@ -25,9 +26,9 @@ def is_float_try(s_str):
 class PowerSupply:
     """Call close() when you're done. Threads need to be killed!"""
 
-    def __init__(self, channels=1, polling=False, polling_interval=500, port='COM4', baudrate=19200,
-                 message_handler=None):
-        """Call close() when you're done. Threads need to be killed!"""
+    def __init__(self, channels: int = 1, polling: bool = False, polling_interval: int = 500,
+                 port: str = 'COM4', baudrate: int = 19200, message_handler=None) -> None:
+        """Initialize a power supply connection and optional polling behaviour."""
 
         message_handler = WrappedMessageHandler(message_handler, "PowerSupply")
         self.message_handler = message_handler
@@ -55,8 +56,37 @@ class PowerSupply:
         external_recorder.register_handler("power", self._handle_external_event)
         self._external_handler_registered = True
 
+        self.ser: Optional[serial.Serial] = None
+
+        connected = self.connect(port=port, baudrate=baudrate)
+
+        if connected:
+            self.flush_inbuffer()
+            threading.Thread(target=self.get_all_values_from_device, daemon=True).start()
+            if polling:
+                self.start_polling()
+        else:
+            self.polling = False
+
+    def connect(self, port: str, baudrate: int) -> bool:
+        """Attempt to connect to the serial power supply.
+
+        Args:
+            port: Serial device path or port name.
+            baudrate: Communication baud rate to be used.
+
+        Returns:
+            True when the serial connection has been established successfully, otherwise False.
+        """
+
+        if self.ser is not None:
+            with suppress(Exception):
+                if self.ser.is_open:
+                    self.ser.close()
+            self.ser = None
+
         try:
-            self.ser = serial.Serial(
+            serial_device = serial.Serial(
                 port=port,
                 baudrate=baudrate,
                 parity=serial.PARITY_NONE,
@@ -67,18 +97,34 @@ class PowerSupply:
                 rtscts=False,
                 timeout=5
             )
-            self.ser.close()
-            self.ser.open()
-            self.ser.isOpen()
-            message_handler.success("Serial Connection established.")
-        except serial.serialutil.SerialException:
-            message_handler.error("Serial Connection failed.")
+            if serial_device.is_open:
+                serial_device.close()
+            serial_device.open()
+            if not serial_device.isOpen():
+                raise serial.serialutil.SerialException("Serial port failed to open.")
+        except serial.serialutil.SerialException as exc:
+            # Notify the GUI without escalating to the global error log when the port is missing.
+            self.message_handler.warning("Serial connection unavailable. Please verify the configured port.")
+            logger.info("Handled serial connection failure for power supply: %s", exc)
             self.ser = None
+            return False
 
-        self.flush_inbuffer()
-        threading.Thread(target=self.get_all_values_from_device).start()
-        if polling:
-            self.start_polling()
+        self.ser = serial_device
+        self.message_handler.success("Serial Connection established.")
+        return True
+
+    def is_connected(self) -> bool:
+        """Return True when the underlying serial device is ready for communication."""
+
+        if self.ser is None:
+            return False
+        is_open_attr = getattr(self.ser, "is_open", None)
+        if isinstance(is_open_attr, bool):
+            return is_open_attr
+        is_open_callable = getattr(self.ser, "isOpen", None)
+        if callable(is_open_callable):
+            return bool(is_open_callable())
+        return False
 
     def close(self):
         self.polling = False
@@ -110,10 +156,17 @@ class PowerSupply:
             self.voltage_out_listeners[j].append(v_o[j])
             self.intensity_out_listeners[j].append(i_o[j])
 
-    def start_polling(self):
+    def start_polling(self) -> None:
+        """Start polling the power supply if a serial connection is available."""
+
+        if not self.is_connected():
+            self.message_handler.warning("Cannot start polling: connection not established.")
+            self.polling = False
+            return
+
         self.message_handler.info("Polling started.")
         self.polling = True
-        threading.Thread(target=self.poll).start()
+        threading.Thread(target=self.poll, daemon=True).start()
 
     def stop_polling(self):
         self.message_handler.info("Polling stopped.")
@@ -171,20 +224,26 @@ class PowerSupply:
         self.intensity_out[channel - 1] = value
         return value
 
-    def send_command(self, command: str, timeout=200, execute=True, wait_reply=True, expected_lines=1):
+    def send_command(self, command: str, timeout: int = 200, execute: bool = True,
+                     wait_reply: bool = True, expected_lines: int = 1):
+        """Send a command to the power supply and optionally return its reply."""
+
         # t = time.time()
         r = self._send_command(command, 1000, execute, wait_reply, expected_lines)
         if external_recorder.is_replaying:
             return r or ""
         if not isinstance(r, str):
             return r
-        if self.ser is not None and len(r.splitlines()) != expected_lines:
+        if self.is_connected() and len(r.splitlines()) != expected_lines:
             self.message_handler.error("Command error: %s expected %d lines but got %s" % (command, expected_lines, r))
 
         return r
 
-    def _send_command(self, command: str, timeout=200, execute=True, wait_reply=True, expected_lines=1):
-        if self.ser is None:
+    def _send_command(self, command: str, timeout: int = 200, execute: bool = True,
+                      wait_reply: bool = True, expected_lines: int = 1):
+        """Low level command execution helper that interacts with the serial port."""
+
+        if not self.is_connected():
             self.message_handler.warning("Cannot send command: not connected.")
             return ""
         if external_recorder.is_replaying:
@@ -307,29 +366,37 @@ class PowerSupply:
                 self.get_voltage_out_from_device(i)
                 self.get_intensity_out_from_device(i)
 
-    def poll(self):
+    def poll(self) -> None:
+        """Continuously poll the device while connected and polling is enabled."""
+
         sleep_minus = 0.0
         warn_no_connection = True
         while self.polling:
             if sleep_minus < self.polling_interval / 1000:
                 time.sleep(self.polling_interval / 1000 - sleep_minus)
-            elif self.ser is not None:
+            elif self.is_connected():
                 self.message_handler.warning("Cannot keep up with polling!")
             start = time.time()
-            if self.polling and self.ser is not None:
+            if self.polling and self.is_connected():
                 self.get_all_values_from_device(out_only=True)
                 self.flush_inbuffer()
-            if self.ser is None:
+                warn_no_connection = True
+            elif not self.is_connected():
                 if warn_no_connection:
                     warn_no_connection = False
                     self.message_handler.warning("Cannot poll, connection not established.")
                 time.sleep(.5)
             sleep_minus = time.time() - start
 
-    def flush_inbuffer(self):
+    def flush_inbuffer(self) -> None:
+        """Clear any pending bytes from the serial input buffer when connected."""
+
+        if not self.is_connected():
+            return
+
         with self.send_lock:
             try:
-                while self.ser.inWaiting() > 0:
+                while self.ser is not None and self.ser.inWaiting() > 0:
                     print("flushing inbuffer")
                     self.ser.read(self.ser.inWaiting())
             except Exception:
@@ -411,11 +478,39 @@ class PowerSupply:
             logger.exception("Failed to process replayed power reply: %s", reply)
 
 class MockupPowerSupply(PowerSupply):
+    def connect(self, port: str, baudrate: int) -> bool:
+        """Pretend to establish a serial connection for the mock device."""
+
+        class _MockSerial:
+            def __init__(self) -> None:
+                self.is_open = True
+
+            def isOpen(self) -> bool:
+                return True
+
+            def inWaiting(self) -> int:
+                return 0
+
+            def read(self, *_args, **_kwargs):
+                return b""
+
+            def write(self, *_args, **_kwargs):
+                return 0
+
+        self.ser = _MockSerial()
+        return True
+
     def __init__(self, *args, **kwargs):
+        """Initialise the mock power supply and trigger the parent setup."""
+
         PowerSupply.__init__(self, *args, **kwargs)
 
-        self.ser = 0
         self.message_handler.success("Mockup values running.")
+
+    def is_connected(self) -> bool:
+        """Mockup supplies are always considered connected for UI purposes."""
+
+        return True
 
     def send_command(self, command: str, timeout=100, execute=True, wait_reply=True, expected_lines=1):
         import random
