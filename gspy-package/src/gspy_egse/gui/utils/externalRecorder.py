@@ -1,3 +1,45 @@
+"""GSPY-EGSE External Recorder
+
+This module provides a small, self-contained recording/replay engine and a
+Qt-based window to control it. The recorder captures *external interactions*
+(e.g., SpaceWire frames or Power Supply commands), persists them to disk, and
+can later replay them back to interested subsystems using a handler-dispatch
+mechanism. During replay, hardware modules can switch to a safe "simulation"
+mode (gated by `ExternalRecorder.is_replaying`) to avoid touching real devices
+while still exercising their higher-level logic.
+
+File Format
+-----------
+Recordings are stored as newline-delimited JSON (JSON Lines) with the extension
+``.gspy``. Each line encodes an :class:`ExternalEvent` as::
+
+    {"ts": 1712155802.123, "direction": "in"|"out",
+     "kind": "<string>", "payload": <JSON-serializable>}
+
+The recorder writes and reads this format via :meth:`ExternalRecorder.save`
+and :meth:`ExternalRecorder.load`.
+
+GUI
+---
+:class:`ExternalRecorderWindow` exposes load/save, play/step/stop controls,
+a step selector for targeted playback, and a scrolling log pane. It connects to
+the recorder's Qt signals to keep the UI stateful and responsive.
+
+Threading Model
+---------------
+All public methods are expected to be called from the Qt GUI thread. Handlers
+registered via :meth:`ExternalRecorder.register_handler` are invoked inline
+during :meth:`ExternalRecorder.step`. If your handler does long-running work,
+offload it to a worker thread to keep the UI responsive.
+
+Logging
+-------
+The module logs high-level actions (start/stop/save/load/replay) through the
+module logger ``gspy_egse.gui.utils.externalRecorder``. Integrators may attach
+handlers/formatters as needed.
+
+"""
+
 from __future__ import annotations
 
 import json
