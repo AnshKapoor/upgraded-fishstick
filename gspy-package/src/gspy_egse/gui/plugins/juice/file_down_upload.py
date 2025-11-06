@@ -42,9 +42,17 @@ ui_name = "fileDownUp.ui"
 
 class RequirePlugins(WidgetWithExtension):
     def __init__(self, *args, **kwargs):
+        """Declare dependencies on the SpaceWire connection and RAM file system."""
+
         super().__init__(*args, ext_cls=SpaceWireConnection, identifier="_", sub_exts=[
             RamFs
         ], **kwargs)
+
+    def _init(self) -> None:
+        """Provide the optional initialization hook expected by the plugin loader."""
+
+        # Track required extensions for tooling or debugging purposes.
+        self._required_extensions: list[type] = [SpaceWireConnection, RamFs]
 
 
 class FileDownUploadWidget(WidgetWithExtension, Recordable):
@@ -55,10 +63,23 @@ class FileDownUploadWidget(WidgetWithExtension, Recordable):
 
     def __init__(self, *args, filename_down="file.img", filename_down_dpu="file.img", filename_up="file.img",
                  filename_up_dpu="file.img", **kwargs):
+        """Store constructor parameters and register the widget with the plugin framework."""
         self.spw, self.connection = (None,) * 2
 
         self._params = (filename_down, filename_down_dpu, filename_up, filename_up_dpu)
         super().__init__(*args, plugin_name="SpaceWire", ext_cls=SpaceWireConnection, singleton=False, **kwargs)
+
+    def _init(self) -> None:
+        """Create placeholder attributes referenced prior to delayed initialization."""
+
+        # Settings placeholders will be populated once the extension is available.
+        self._filename_down: Setting | None = None
+        self._filename_up: Setting | None = None
+        self.filename_down_dpu: Setting | None = None
+        self.filename_up_dpu: Setting | None = None
+        # UI-related members are defined to avoid attribute errors before _delay_init runs.
+        self.table: QtWidgets.QTableWidget | None = None
+        self.canvas: FigureCanvas | None = None
 
     @property
     def filename_down(self):

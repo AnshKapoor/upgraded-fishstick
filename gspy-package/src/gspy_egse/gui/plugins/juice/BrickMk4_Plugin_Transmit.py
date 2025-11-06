@@ -30,9 +30,17 @@ ui_name = "BrickMk4.ui"
 
 class RequirePlugins(WidgetWithExtension): #background task is super important
     def __init__(self, *args, **kwargs):
+        """Declare dependency on the SpaceWire connection and BrickMk4 hardware."""
+
         super().__init__(*args, ext_cls=SpaceWireConnection, identifier="_", sub_exts=[
             BrickMk4
         ], **kwargs)
+
+    def _init(self) -> None:
+        """Provide a no-op hook so the loader can safely invoke optional initialization."""
+
+        # The loader expects this method; no additional startup state is required here.
+        self._required_extensions: list[type] = [SpaceWireConnection, BrickMk4]
 
 
 class BrickMk4Widget(WidgetWithExtension, Recordable):
@@ -41,8 +49,19 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
     :type connection: SpaceWireConnection
     """
     def __init__(self, *args, **kwargs):
+        """Initialize the widget and register its extension dependencies."""
         self.spw, self.connection = (None,) * 2
         super().__init__(*args, plugin_name="SpaceWire", ext_cls=SpaceWireConnection, singleton=False, **kwargs)
+
+    def _init(self) -> None:
+        """Set up default state before delayed initialization executes."""
+
+        # Ensure attributes referenced by helper methods exist before _delay_init runs.
+        self.addressBuffer: list[int] = []
+        self.packetDataBuffer: list[int] = []
+        self.writeOutLock: threading.Lock | None = None
+        self.dummy: bool = False
+        self.storage: TransmitResultStorage | None = None
 
     def _delay_init(self, extension=None, _=False):
         self.addressBuffer = []

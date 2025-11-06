@@ -62,9 +62,17 @@ class RequirePlugins(WidgetWithExtension): #background task is super important
     are available.
     """
     def __init__(self, *args, **kwargs):
+        """Register the dependency list with the plugin base class."""
+
         super().__init__(*args, ext_cls=SpaceWireConnection, identifier="_", sub_exts=[
             BrickMk4
         ], **kwargs)
+
+    def _init(self) -> None:
+        """Expose an initialization hook expected by the plugin loader."""
+
+        # Cache the dependency information for introspection or debugging use.
+        self._required_extensions: list[type] = [SpaceWireConnection, BrickMk4]
 
 
 class BrickMk4Service1Widget(WidgetWithExtension, Recordable):
@@ -87,6 +95,17 @@ class BrickMk4Service1Widget(WidgetWithExtension, Recordable):
         """Initialize widget and register it as a non-singleton SpaceWire plugin."""
         self.spw, self.connection = (None,) * 2
         super().__init__(*args, plugin_name="SpaceWire", ext_cls=SpaceWireConnection, singleton=False, **kwargs)
+
+    def _init(self) -> None:
+        """Prepare default attributes that are populated during delayed initialization."""
+
+        # Buffers and locks are defined upfront to prevent attribute lookup failures.
+        self.addressBuffer: list[int] = []
+        self.packetDataBuffer: list[int] = []
+        self.writeOutLock: threading.Lock | None = None
+        self.dummy: bool = False
+        self.storage: TransmitResultStorage | None = None
+        self._step_counter: int = 0
 
     def _delay_init(self, extension=None, _=False):
         """
