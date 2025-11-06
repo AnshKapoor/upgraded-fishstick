@@ -1,4 +1,4 @@
-# GSpy Development Guide
+# GSpy Serices Development Guide
 
 ## Including the DHU Simulator into a Custom View
 

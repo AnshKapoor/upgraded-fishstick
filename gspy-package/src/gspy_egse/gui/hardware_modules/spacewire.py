@@ -57,7 +57,7 @@ class SpaceWire(Extendable):
         self.thread_lock = threading.Lock()  # type: threading.Lock
         self.do_receive = True
         if not self.spw_raw.dummy:
-            call_async(self.receive_thread)
+            self.receive_thread_instance: threading.Thread = call_async(self.receive_thread)
 
         self.events = SpwEvents()
         self.listeners_raw = []
@@ -98,8 +98,7 @@ class SpaceWire(Extendable):
 
     def close(self):
         self.do_receive = False
-        with self.thread_lock:
-            pass
+        self.receive_thread_instance.join(0.5)
         if getattr(self, "_external_handler_registered", False):
             external_recorder.unregister_handler("space-wire", self._handle_external_replay_event)
             self._external_handler_registered = False
