@@ -128,6 +128,11 @@ class BrickMk4Service1Widget(WidgetWithExtension, Recordable):
         # self.ui = uic.loadUi("gspy_egse/gui/ui/service1.ui", self)
         self._step_counter = 0
 
+        # The UI historically defined a button named "FreqSet".  Store a guarded
+        # reference so later logic can safely enable/disable the control even if
+        # the widget is absent in legacy UI versions.
+        self.FreqSet: QtWidgets.QWidget | None = getattr(self, "FreqSet", None)
+
         self.pushButton.clicked.connect(lambda: self._prepare_and_send(1))  # TM[1,1]
         self.pushButton_2.clicked.connect(lambda: self._prepare_and_send(3))  # TM[1,3]
         self.pushButton_3.clicked.connect(lambda: self._prepare_and_send(5))  # TM[1,5]
@@ -353,7 +358,10 @@ class BrickMk4Service1Widget(WidgetWithExtension, Recordable):
             # self.comboBox.setItemText(0, self.spw.getDeviceName())
         print(f"{self.dummy=} {state=}")
 
-        self.FreqSet.setEnabled(state)
+        # Only toggle the frequency control when it is available in the UI to
+        # prevent `AttributeError` in legacy deployments.
+        if self.FreqSet is not None:
+            self.FreqSet.setEnabled(state)
         self.settingsButton.setEnabled(state)
         self.pushButton.setEnabled(state)
         self.pushButton_2.setEnabled(state)

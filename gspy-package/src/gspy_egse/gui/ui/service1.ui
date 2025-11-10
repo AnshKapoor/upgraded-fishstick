@@ -48,6 +48,19 @@
        </property>
       </widget>
      </item>
+      <item alignment="Qt::AlignRight">
+       <widget class="QPushButton" name="FreqSet">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="text">
+         <string>Set Frequency</string>
+        </property>
+       </widget>
+      </item>
     </layout>
    </item>
    <item row="17" column="1" colspan="2">
