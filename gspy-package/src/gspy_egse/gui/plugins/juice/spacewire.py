@@ -1,4 +1,5 @@
 import logging
+from typing import List
 
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtCore import pyqtSlot, pyqtSignal
@@ -30,6 +31,22 @@ class RecordableSpaceWire(SpaceWire, Recordable):
     @Recordable.intercept_on_playback()
     def cmd(self, *args, play_back=False, **kwargs):
         return SpaceWire.cmd(self, *args, **kwargs)
+
+    @property
+    def file_list(self) -> List[str]:
+        """Provide a safe default list of files recorded by the hardware.
+
+        The ``Extendable`` helper expects the hardware driver to offer a
+        ``file_list`` attribute when exposing file-based functionality.  The
+        SpaceWire implementation does not create files by itself, therefore we
+        expose an empty list here to satisfy the expectations of the GUI layer
+        without raising :class:`AttributeError`.
+
+        :return: A list of available file identifiers provided by the driver.
+        """
+
+        # Returning an empty list clarifies that no files are available yet.
+        return []
 
 class SpaceWireConnection(QtCore.QObject, ObjectWithSettings, Recordable):
     hardware_params_changed = pyqtSignal()

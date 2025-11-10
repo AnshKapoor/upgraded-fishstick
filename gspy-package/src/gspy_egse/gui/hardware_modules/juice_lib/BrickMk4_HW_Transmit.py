@@ -1,3 +1,5 @@
+from typing import List
+
 from ..spacewire import *
 from .commands import *
 import threading
@@ -59,3 +61,18 @@ class BrickMk4:
 
     def spw_waitEvent(self):
         self.spw.spw_raw.waitEvent()
+
+    @property
+    def file_list(self) -> List[str]:
+        """Return a default list of files exposed by the BrickMk4 driver.
+
+        The GUI collects ``file_list`` attributes from every attached
+        extension.  The BrickMk4 driver does not expose files today, so we
+        return an empty list to indicate that the feature is intentionally not
+        available while still satisfying the access pattern.
+
+        :return: A list with the currently available file identifiers.
+        """
+
+        # The driver currently has no files to share with the GUI consumers.
+        return []
