@@ -1,6 +1,7 @@
 from PyQt6 import QtWidgets, QtCore, uic
 from copy import copy
 import logging
+from typing import Any, Callable, Iterable, Optional
 
 from .plugin_settings import PluginSettings
 from .misc import MAX_INT32, random_identifier
@@ -129,23 +130,36 @@ class WidgetWithSettings(QtWidgets.QWidget, ObjectWithSettings):
             s.set(default_value)
 
 class WidgetWithExtension(WidgetWithSettings):
-    def __init__(self, window, *args, ext_cls=None, sub_exts=None, **kwargs):
+    def __init__(
+        self,
+        window: QtWidgets.QWidget,
+        *args: Any,
+        ext_cls: Optional[type] = None,
+        sub_exts: Optional[Iterable[type]] = None,
+        **kwargs: Any,
+    ) -> None:
+        """Initialize a widget capable of reacting to dynamically loaded extensions."""
+
         super().__init__(window, *args, **kwargs)
-        self._init_delay_listeners = []
+        # Collect callbacks that should run after delayed initialization completes.
+        self._init_delay_listeners: list[Callable[..., None]] = []
         self.__delay_init_signal.connect(self.__delay_init)
-        self._sub_exts = sub_exts if sub_exts is not None else []
+        # Normalise the iterable of sub-extensions into a concrete list for reuse.
+        self._sub_exts = list(sub_exts) if sub_exts is not None else []
 
         try:
             self._params
         except AttributeError:
             self._params = (args, kwargs)
 
-        try:
-            self._init()
-        except AttributeError:
-            logger.debug("Widget %s does not implement _init().", self.__class__.__name__, exc_info=True)
-        except Exception:
-            logger.exception("Unexpected error during _init for widget %s.", self.__class__.__name__)
+        init_method = getattr(self, "_init", None)
+        if callable(init_method):
+            try:
+                init_method()
+            except Exception:
+                logger.exception("Unexpected error during _init for widget %s.", self.__class__.__name__)
+        else:
+            logger.debug("Widget %s does not implement _init(); skipping optional setup.", self.__class__.__name__)
 
         self._init_delayed = False  # indicate _delay_init that init is not delayed and no listeners need to be called
         window.add_extension_class_listener(ext_cls, self.__delay_init)  # this might call _delay_init:
