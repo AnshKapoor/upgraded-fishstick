@@ -258,6 +258,36 @@ class Extendable:
                     n = i
                     break
 
+    @property
+    def file_list(self) -> List[str]:
+        """Aggregate the file lists exposed by loaded extensions.
+
+        The GUI expects certain extensions (for example ``RecordableSpaceWire``
+        and ``BrickMk4``) to provide a ``file_list`` attribute. Some legacy
+        implementations never exposed that attribute which caused
+        :class:`AttributeError` exceptions when the attribute was requested via
+        :meth:`Extendable.__getattr__`.  To keep the attribute access safe we
+        collect every available list in a defensive manner and warn when an
+        extension does not define the attribute yet.
+
+        :return: Combined list of file paths provided by the registered
+                 extensions.
+        """
+
+        files: List[str] = []
+        missing_warning: Set[type] = set()
+        for extension_instance, _ in self.extensions:
+            # ``getattr`` guarantees a safe fallback to an empty list.
+            extension_files: List[str] = getattr(extension_instance, "file_list", [])
+            if not hasattr(extension_instance, "file_list") and extension_instance.__class__ not in missing_warning:
+                logger.warning(
+                    "Extension '%s' does not implement 'file_list'; defaulting to an empty list.",
+                    extension_instance.__class__.__name__
+                )
+                missing_warning.add(extension_instance.__class__)
+            files.extend(extension_files)
+        return files
+
     def __getter(self, item: str) -> Any:
         """
         Call both attribute getters of self for item
