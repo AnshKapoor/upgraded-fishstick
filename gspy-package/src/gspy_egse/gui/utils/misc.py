@@ -158,9 +158,13 @@ class Extendable:
     """
 
     def __init__(self, *args, **kwargs):
+        """Initialise the extension container with bookkeeping helpers."""
+
         super().__init__(*args, **kwargs)
         self.extensions: List[[object, bool]] = []
         self._extension_listeners: List[[type, Callable[[Optional[object]], None]]] = []
+        # Track extension/attribute pairs so we only log missing attributes once.
+        self._missing_attribute_log: Set[Tuple[type, str]] = set()
 
     def get_extension(self, instance: object) -> object:
         """
@@ -289,32 +293,56 @@ class Extendable:
         return files
 
     def __getter(self, item: str) -> Any:
-        """
-        Call both attribute getters of self for item
+        """Return ``item`` using the standard attribute lookup chain.
 
-        :param item: Name of the attribute to get
+        The helper intentionally delegates to :func:`object.__getattribute__`
+        so mixins and subclasses are respected before we attempt to proxy the
+        request to registered extensions.  Letting the original
+        :class:`AttributeError` propagate keeps the outer :meth:`__getattr__`
+        handler in control without chaining unrelated exceptions.
+
+        :param item: Name of the attribute to get.
+        :return: The attribute value when it exists on ``self``.
+        :raises AttributeError: If the attribute is not defined on ``self``.
         """
-        try:
-            return object.__getattr__(self, item)
-        except AttributeError:
-            return object.__getattribute__(self, item)
+
+        return object.__getattribute__(self, item)
 
     def __getattr__(self, item: str) -> Any:
+        """Proxy unresolved attributes to registered extensions when possible.
+
+        :param item: Name of the attribute that could not be resolved normally.
+        :return: The attribute provided by one of the extensions.
+        :raises AttributeError: If no extension exposes the requested attribute.
+        """
+
         try:
-            r = self.__getter(item)
-            return r
-        except AttributeError as e:
+            return self.__getter(item)
+        except AttributeError as err:
             if not item.startswith('_'):
-                for m, ext in self.extensions:
-                    if ext:
-                        try:
-                            r = object.__getattribute__(m, item)
-                            return r
-                        except AttributeError:
-                            logger.debug("Extension %r does not provide attribute '%s'.", m, item, exc_info=True)
-                        except Exception:
-                            logger.exception("Failed to access attribute '%s' on extension %r.", item, m)
-            raise e
+                for extension_instance, extend_methods in self.extensions:
+                    # Only extensions that explicitly opted-in may satisfy
+                    # attribute lookups on behalf of the host object.
+                    if not extend_methods:
+                        continue
+                    try:
+                        return object.__getattribute__(extension_instance, item)
+                    except AttributeError:
+                        log_key = (extension_instance.__class__, item)
+                        if log_key not in self._missing_attribute_log:
+                            logger.debug(
+                                "Extension '%s' does not provide attribute '%s'.",
+                                extension_instance.__class__.__name__,
+                                item,
+                            )
+                            self._missing_attribute_log.add(log_key)
+                    except Exception:
+                        logger.exception(
+                            "Failed to access attribute '%s' on extension %r.",
+                            item,
+                            extension_instance,
+                        )
+            raise err
 
 
 class BColors:
