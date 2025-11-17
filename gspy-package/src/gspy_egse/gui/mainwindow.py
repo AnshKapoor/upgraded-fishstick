@@ -310,6 +310,10 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         self.tree_widget = None  # type: QtWidgets.QTreeView
         self.background_tasks = []
         self.windows: List[QtWidgets.QMainWindow] = []
+        # Track widgets that require a working transport layer (serial/SpaceWire).
+        self._transport_controls: List[QtCore.QObject] = []
+        # Remember the last reported connection state so restore_panels can reapply it.
+        self._transport_connected: bool = True
         self.setCorner(QtCore.Qt.BottomLeftCorner, QtCore.Qt.LeftDockWidgetArea)
 
         ui_res = files(pkg).joinpath(ui_name)
@@ -631,12 +635,45 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         self.tree_dock.setObjectName("WidgetsDock")
         self.tree_dock.setWidget(self.tree_widget)
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.tree_dock)
+        # Register the widgets whose enabled state should follow the connection availability.
+        self._transport_controls = [
+            self.stackedWidget,
+            self.tree_widget,
+            getattr(self.bottom_widget, "consoleWidget", self.bottom_widget),
+        ]
+        self._set_connected_ui(self._transport_connected)
+
+    def _set_connected_ui(self, connected: bool) -> None:
+        """Toggle transport-dependent controls and surface the connection state."""
+
+        # Persist the state so the next restore_panels call reapplies it immediately.
+        self._transport_connected = connected
+        status_text: str = (
+            "Transport link established."
+            if connected
+            else "Transport unavailable – waiting for hardware connection."
+        )
+        try:
+            # Keep users informed via the native status bar.
+            self.statusBar().showMessage(status_text)
+        except Exception:
+            logger.debug("Failed to update status bar text for connection state.", exc_info=True)
+
+        for control in self._transport_controls:
+            if control is None:
+                continue
+            try:
+                control.setEnabled(connected)
+            except Exception:
+                logger.debug("Transport control %r lacks setEnabled; skipping.", control, exc_info=True)
 
     def load_plugins(self, plugin_path: Optional[str] = None, package: str = "gspy_egse.gui.plugins") -> int:
         """Load plugin modules and initialise their background tasks.
 
         The method safeguards against hardware plugins whose serial connections fail by
         skipping their polling setup until a connection is available.
+        Transport-dependent UI elements are updated based on the aggregated connection state
+        to prevent accidental command execution while disconnected.
 
         Args:
             plugin_path: Optional filesystem path that overrides the default search location.
@@ -672,6 +709,8 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
                     full_module_name = f"{current_package}.{module_name}"
                     yield full_module_name
 
+        transport_connected: bool = True
+
         for full_module_name in walk_modules(base_path, package):
             logging.debug(f"[Load plugins] Attempting to import: {full_module_name}")
             try:
@@ -685,6 +724,7 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
                     hardware = getattr(task_instance, "hardware", None)
                     is_connected = getattr(hardware, "is_connected", None)
                     if callable(is_connected) and not is_connected():
+                        transport_connected = False
                         logging.warning(
                             "[Load plugins] %s hardware not connected; skipping polling and UI activation.",
                             full_module_name,
@@ -701,6 +741,7 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
             except Exception as e:
                 logging.warning(f"[Load plugins] Failed to import plugin {full_module_name}: {e}")
 
+        self._set_connected_ui(transport_connected)
         logging.info(f"[Load plugins] {n} plugins loaded: {loaded_plugin_names}")
         return n
 
