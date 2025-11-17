@@ -1,20 +1,27 @@
-from PyQt6 import QtCore, QtWidgets, QtGui, uic
-from pathlib import Path
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
-from typing import *
-import threading
-import random
-import time
 import json
+import logging
+import random
+import threading
+import time
 
+import matplotlib.image as mpimg
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from PyQt6 import QtCore, QtGui, QtWidgets, uic
+
+from gspy_egse.gui.STAR_system.STAR_exceptions import STARAPIError
+from gspy_egse.gui.hardware_modules.juice_lib.BrickMk4_HW_Transmit import BrickMk4
 from gspy_egse.gui.plugins.juice.spacewire import SpaceWireConnection
 from gspy_egse.gui.utils.plugin import WidgetWithExtension
-from gspy_egse.gui.utils.widget import call_in_main_thread, delay_in_main_thread, async_in_main_thread, select_file, ActivationListener
 from gspy_egse.gui.utils.recorder import Recordable
-from gspy_egse.gui.hardware_modules.juice_lib.BrickMk4_HW_Transmit import BrickMk4
 from gspy_egse.gui.utils.transmitResultStorage import TransmitResultStorage
+from gspy_egse.gui.utils.widget import (
+    ActivationListener,
+    async_in_main_thread,
+    call_in_main_thread,
+    delay_in_main_thread,
+    select_file,
+)
 
 try:
     from PIL import Image
@@ -23,6 +30,8 @@ except ImportError:
 
 
 from importlib.resources import files, as_file  # stdlib, Python ≥3.9
+
+logger = logging.getLogger(__name__)
 
 pkg = "gspy_egse.gui.ui"
 ui_name = "BrickMk4.ui"
@@ -63,15 +72,21 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
         self.dummy: bool = False
         self.storage: TransmitResultStorage | None = None
 
-    def _delay_init(self, extension=None, _=False):
+    def _delay_init(self, extension: SpaceWireConnection | None = None, _: bool = False) -> None:
+        """Complete the delayed UI initialization once SpaceWire is available."""
+
         self.addressBuffer = []
         self.packetDataBuffer = []
         self.inherit_settings_from_parent(extension)
+        if extension is None:
+            logger.error("BrickMk4Widget._delay_init() received no SpaceWire connection; skipping setup.")
+            return
+
         self.connection = extension
         self.writeOutLock = threading.Lock()
         print(f"connection for BrickMk4 is: {extension}")
-        self.spw = self.connection.hardware #hardware = BrickMk4_HW_Transmit
-        
+        self.spw = self.connection.hardware  # hardware = BrickMk4_HW_Transmit
+
         ui_res = files(pkg).joinpath(ui_name)
         with as_file(ui_res) as ui_path:
             self.ui = uic.loadUi(str(ui_path), self)
@@ -96,12 +111,37 @@ class BrickMk4Widget(WidgetWithExtension, Recordable):
 
         self.update_ui()
 
-        deviceName = self.spw.getDeviceName()
-        if not self.dummy:
-            self.comboBox.addItem(deviceName)
+        device_name: str | None = self._try_get_device_name()
+        if not self.dummy and device_name:
+            self.comboBox.addItem(device_name)
         self.storage = TransmitResultStorage()
 
         self.make_settings_btn(self.settingsButton)
+
+    def _try_get_device_name(self) -> str | None:
+        """Safely query the hardware for its device name.
+
+        The helper catches :class:`STARAPIError` instances so the rest of the
+        delayed initialization can finish without polluting the logs with the
+        large stack traces previously emitted from ``plugin.py``.
+
+        :return: The name reported by the device or ``None`` when unavailable.
+        """
+
+        if self.spw is None:
+            logger.warning(
+                "BrickMk4Widget._try_get_device_name() called before hardware binding was established."
+            )
+            return None
+
+        try:
+            return self.spw.getDeviceName()
+        except STARAPIError as err:
+            logger.error("Unable to query BrickMk4 device name: %s", err)
+            return None
+        except Exception:  # pragma: no cover - defensive logging
+            logger.exception("Unexpected failure while querying the BrickMk4 device name.")
+            return None
 
 
 

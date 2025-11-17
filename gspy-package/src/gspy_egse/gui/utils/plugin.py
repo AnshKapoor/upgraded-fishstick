@@ -1,5 +1,6 @@
 from PyQt6 import QtWidgets, QtCore, uic
 from copy import copy
+import inspect
 import logging
 from typing import Any, Callable, Iterable, Optional
 
@@ -168,12 +169,11 @@ class WidgetWithExtension(WidgetWithSettings):
         else:  # we are waiting
             self._init_delayed = True  # indicate _delay_init that init is delayed and listeners need to be called
 
-    def add_init_complete_listener(self, listener):
+    def add_init_complete_listener(self, listener: Callable[..., None]) -> None:
+        """Register a callback that should fire when delayed initialization finishes."""
+
         if not self._init_delayed:
-            try:
-                listener(self)
-            except TypeError:
-                listener()
+            self._call_init_listener(listener)
         else:
             self._init_delay_listeners.append(listener)
 
@@ -183,7 +183,9 @@ class WidgetWithExtension(WidgetWithSettings):
         pass
 
     @QtCore.pyqtSlot(object, bool)
-    def __delay_init(self, extension, threaded=False):
+    def __delay_init(self, extension: object, threaded: bool = False) -> None:
+        """Invoke `_delay_init` while ensuring extension listeners log clean errors."""
+
         for E in (self._sub_exts if isinstance(self._sub_exts, list) else [self._sub_exts]):
             try:
                 E(extension)
@@ -208,10 +210,7 @@ class WidgetWithExtension(WidgetWithSettings):
             if not threaded:
                 return self.__delay_init_signal.emit(extension, True)
             for listener in self._init_delay_listeners:  # notify listeners
-                try:
-                    listener(self)
-                except TypeError:
-                    listener()
+                self._call_init_listener(listener)
 
             self._init_delayed = False  # delayed init done
             try:
@@ -223,6 +222,45 @@ class WidgetWithExtension(WidgetWithSettings):
                 logger.debug("Widget %r does not implement _delay_init().", self, exc_info=True)
             except Exception:
                 logger.exception("Unexpected error during delayed _delay_init for widget %r.", self)
+
+    def _call_init_listener(self, listener: Callable[..., None]) -> None:
+        """Safely invoke an init listener without polluting the log with tracebacks."""
+
+        expects_widget = self._listener_accepts_widget(listener)
+        try:
+            if expects_widget:
+                listener(self)
+            else:
+                listener()
+        except Exception:
+            logger.exception("Init-complete listener %r raised an unexpected error.", listener)
+
+    @staticmethod
+    def _listener_accepts_widget(listener: Callable[..., None]) -> bool:
+        """Return True when a listener's signature can consume the widget instance."""
+
+        try:
+            signature = inspect.signature(listener)
+        except (TypeError, ValueError):
+            # Built-in callables might not expose a signature; fall back to passing self.
+            return True
+
+        parameters = list(signature.parameters.values())
+        # Honor var-positional signatures (`*args`) to preserve backwards compatibility.
+        if any(param.kind == inspect.Parameter.VAR_POSITIONAL for param in parameters):
+            return True
+
+        positional_params = [
+            param
+            for param in parameters
+            if param.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+        ]
+
+        if getattr(listener, "__self__", None) is not None and positional_params:
+            # Drop the leading `self` for bound methods so we only account for user-defined params.
+            positional_params = positional_params[1:]
+
+        return bool(positional_params)
 
 
 class Setting:

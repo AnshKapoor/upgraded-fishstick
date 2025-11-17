@@ -428,30 +428,38 @@ class Splitter(QSplitter):
     V = 1
 
     @staticmethod
-    def shrink_right(widget, margin=2):
+    def shrink_right(widget: Union[QWidget, QLayout], margin: int = 2) -> None:
+        """Reduce a widget's right margin while logging a clean message on failure."""
+
         try:
             layout = widget.layout()
             if layout and layout != widget:
+                # Recurse into layouts so nested widgets inherit the adjustment.
                 Splitter.shrink_right(layout, margin)
                 margin = 0
+            if not hasattr(widget, "getContentsMargins") or not hasattr(widget, "setContentsMargins"):
+                logger.debug("Widget %r is missing contents margin accessors; skipping shrink_right.", widget)
+                return
             l, t, r, b = widget.getContentsMargins()
             widget.setContentsMargins(int(l), int(t), int(margin), int(b))
-        except AttributeError:
-            logger.debug("Widget %r does not support shrink_right operation.", widget, exc_info=True)
         except Exception:
             logger.exception("Failed to shrink right for widget %r.", widget)
 
     @staticmethod
-    def shrink_left(widget, margin=2):
+    def shrink_left(widget: Union[QWidget, QLayout], margin: int = 2) -> None:
+        """Reduce a widget's left margin while keeping log noise to a minimum."""
+
         try:
             layout = widget.layout()
             if layout and layout != widget:
+                # Recurse into layouts so nested widgets inherit the adjustment.
                 Splitter.shrink_left(layout, margin)
                 margin = 0
+            if not hasattr(widget, "getContentsMargins") or not hasattr(widget, "setContentsMargins"):
+                logger.debug("Widget %r is missing contents margin accessors; skipping shrink_left.", widget)
+                return
             l, t, r, b = widget.getContentsMargins()
             widget.setContentsMargins(int(margin), int(t), int(r), int(b))
-        except AttributeError:
-            logger.debug("Widget %r does not support shrink_left operation.", widget, exc_info=True)
         except Exception:
             logger.exception("Failed to shrink left for widget %r.", widget)
 
