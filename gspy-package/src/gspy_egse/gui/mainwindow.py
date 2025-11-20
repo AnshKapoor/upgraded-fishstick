@@ -643,8 +643,25 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
         ]
         self._set_connected_ui(self._transport_connected)
 
+    def _get_status_bar(self) -> Optional[QtWidgets.QStatusBar]:
+        """Return the status bar instance whether Qt exposed it as a method or attribute."""
+
+        # Qt Designer-generated classes sometimes overwrite ``statusBar`` with an instance
+        # attribute, so we need to support both the callable accessor and direct attribute use.
+        status_bar_candidate: Any = getattr(self, "statusBar", None)
+        if callable(status_bar_candidate):
+            return cast(QtWidgets.QStatusBar, status_bar_candidate())
+        if isinstance(status_bar_candidate, QtWidgets.QStatusBar):
+            return status_bar_candidate
+        return None
+
     def _set_connected_ui(self, connected: bool) -> None:
-        """Toggle transport-dependent controls and surface the connection state."""
+        """Toggle transport-dependent controls and surface the connection state.
+
+        Args:
+            connected: Flag indicating whether the transport layer (e.g., serial/SpaceWire)
+                is currently available.
+        """
 
         # Persist the state so the next restore_panels call reapplies it immediately.
         self._transport_connected = connected
@@ -653,11 +670,13 @@ class MyMainWindow(QtWidgets.QMainWindow, Extendable):
             if connected
             else "Transport unavailable – waiting for hardware connection."
         )
-        try:
-            # Keep users informed via the native status bar.
-            self.statusBar().showMessage(status_text)
-        except Exception:
-            logger.debug("Failed to update status bar text for connection state.", exc_info=True)
+
+        status_bar: Optional[QtWidgets.QStatusBar] = self._get_status_bar()
+        if status_bar is not None:
+            # Keep users informed via the native status bar without risking callable misuse.
+            status_bar.showMessage(status_text)
+        else:
+            logger.debug("Status bar unavailable; skipping connection status update.")
 
         for control in self._transport_controls:
             if control is None:
