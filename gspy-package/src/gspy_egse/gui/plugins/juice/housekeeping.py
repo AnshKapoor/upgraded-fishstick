@@ -29,28 +29,52 @@ class RequirePlugins(WidgetWithExtension):
 
 
 class HousekeepingWidget(WidgetWithExtension):
-    """
-    :type spw: SpaceWire | RamFs
-    :type connection: SpaceWireConnection
-    """
+    """Widget that visualises the hardware housekeeping telemetry."""
 
     def __init__(self, *args, **kwargs):
-        self.spw, self.connection = (None,) * 2
+        """Initialise the widget and remember SpaceWire references."""
+
+        self.spw: Optional[Union[SpaceWire, RamFs]] = None
+        self.connection: Optional[SpaceWireConnection] = None
 
         super().__init__(*args, plugin_name="SpaceWire", ext_cls=SpaceWireConnection, **kwargs)
 
-    def _delay_init(self, extension=None, _=False):
+    def _ensure_housekeeping_support(self) -> bool:
+        """Guarantee that the SpaceWire driver exposes housekeeping helpers."""
+
+        if self.spw is None:
+            return False
+
+        if hasattr(self.spw, "add_hk_listener") and hasattr(self.spw, "hk"):
+            return True
+
+        try:
+            # Attempt to attach the extension locally when the background task
+            # was unable to load it yet.
+            Housekeeping(self.spw)
+        except Exception:
+            logger.exception("Failed to attach housekeeping extension to %r.", self.spw)
+            return False
+
+        return hasattr(self.spw, "add_hk_listener") and hasattr(self.spw, "hk")
+
+    def _delay_init(self, extension: Optional[SpaceWireConnection] = None, _threaded: bool = False) -> None:
+        """Connect housekeeping listeners once the SpaceWire extension is ready."""
+
         self.inherit_settings_from_parent(extension)
         self.connection = extension
-        self.spw = self.connection.hardware
+        self.spw = self.connection.hardware if extension is not None else None
+
+        if not self._ensure_housekeeping_support():
+            logger.error("Housekeeping extension is unavailable; skipping UI initialisation.")
+            return
+
         self.spw.add_hk_listener(self.hk_listener)
 
-        hk = None
-        try:
-            hk = self.spw.hk
-        except Exception:
-            logger.exception("Failed to access housekeeping interface from SpaceWire connection.")
-        
+        hk: Optional[Dict[str, Union[int, List[int]]]] = getattr(self.spw, "hk", None)
+        if hk is None:
+            logger.warning("Housekeeping data is not ready yet; UI will update once telemetry arrives.")
+
         ui_res = files(pkg).joinpath(ui_name)
         with as_file(ui_res) as ui_path:
             self.ui = uic.loadUi(str(ui_path), self)
